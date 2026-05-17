@@ -23,6 +23,21 @@ bool ItemTableManager::AddItemEntry(uint16_t tableID, uint16_t getItemID, GetIte
 GetItemEntry ItemTableManager::RetrieveItemEntry(uint16_t tableID, uint16_t getItemID) {
     try {
         ItemTable* itemTable = RetrieveItemTable(tableID);
+
+        // GIM HotPatch
+        auto realID = *(int16_t*)(&getItemID);
+        if (realID < 0)
+            switch (realID) {
+                case -65: // Blue Potion Bottle
+                    getItemID = 18;
+                    break;
+                case -72: // Light Arrows
+                    getItemID = 90;
+                    break;
+                default: // Compass default so things dont bust.
+                    getItemID = 48;
+            }
+
         GetItemEntry getItemEntry = itemTable->at(getItemID);
         getItemEntry.drawItemId = getItemEntry.itemId;
         getItemEntry.drawModIndex = getItemEntry.modIndex;
