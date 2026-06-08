@@ -26,6 +26,12 @@ extern "C" {
 #include "macros.h"
 #include "soh/cvar_prefixes.h"
 extern PlayState* gPlayState;
+
+#include "textures/icon_item_static/icon_item_static.h"
+#include "textures/icon_item_24_static/icon_item_24_static.h"
+#include "textures/parameter_static/parameter_static.h"
+#include "mods/extended_inventory.h"
+#include "mods/extended_equipment.h"
 }
 
 #include "message_data_static.h"
@@ -533,6 +539,12 @@ void DrawInventoryTab() {
         "Restrict to valid items", &restrictToValid,
         checkboxOptionsBase.Tooltip("Restricts items and ammo to only what is possible to legally acquire in-game"));
 
+    // ============================================================================
+    // VANILLA INVENTORY (Page 1 - Slots 0-23)
+    // ============================================================================
+    ImGui::Text("Vanilla Inventory (Page 1)");
+    ImGui::Separator();
+
     for (int32_t y = 0; y < 4; y++) {
         for (int32_t x = 0; x < 6; x++) {
             int32_t index = x + y * 6;
@@ -547,26 +559,28 @@ void DrawInventoryTab() {
 
             uint8_t item = gSaveContext.inventory.items[index];
             PushStyleButton(Colors::DarkGray);
-            if (item == ITEM_ROCS_FEATHER) {
-                auto ret = ImGui::ImageButton(
-                    "ROCS_FEATHER",
-                    std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
-                        ->GetTextureByName("ROCS_FEATHER"),
-                    ImVec2(48.0f, 48.0f), ImVec2(0, 0), ImVec2(1, 1));
-                if (ret) {
-                    selectedIndex = index;
-                    ImGui::OpenPopup(itemPopupPicker);
+            if (item != ITEM_NONE) {
+                // Look up in vanilla mapping first, then custom items
+                const ItemMapEntry* slotEntryPtr = nullptr;
+                auto it = itemMapping.find(item);
+                if (it != itemMapping.end()) {
+                    slotEntryPtr = &it->second;
+                } else {
+                    auto cit = customItemMapping.find(item);
+                    if (cit != customItemMapping.end()) {
+                        slotEntryPtr = &cit->second;
+                    }
                 }
-            } else if (item != ITEM_NONE) {
-                const ItemMapEntry& slotEntry = itemMapping.find(item)->second;
-                auto ret = ImGui::ImageButton(
-                    slotEntry.name.c_str(),
-                    std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
-                        ->GetTextureByName(slotEntry.name),
-                    ImVec2(48.0f, 48.0f), ImVec2(0, 0), ImVec2(1, 1));
-                if (ret) {
-                    selectedIndex = index;
-                    ImGui::OpenPopup(itemPopupPicker);
+                if (slotEntryPtr) {
+                    const ItemMapEntry& slotEntry = *slotEntryPtr;
+                    auto ret = ImGui::ImageButton(
+                        slotEntry.name.c_str(),
+                        Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(slotEntry.name),
+                        ImVec2(48.0f, 48.0f), ImVec2(0, 0), ImVec2(1, 1));
+                    if (ret) {
+                        selectedIndex = index;
+                        ImGui::OpenPopup(itemPopupPicker);
+                    }
                 }
             } else {
                 if (ImGui::Button("##itemNone", ImVec2(IMAGE_SIZE, IMAGE_SIZE) + ImGui::GetStyle().FramePadding * 2)) {
@@ -632,6 +646,12 @@ void DrawInventoryTab() {
         }
     }
 
+    ImGui::Spacing();
+    ImGui::Spacing();
+
+    // ============================================================================
+    // AMMO SECTION
+    // ============================================================================
     ImGui::Text("Ammo");
     for (uint32_t ammoIndex = 0, drawnAmmoItems = 0; ammoIndex < 16; ammoIndex++) {
         uint8_t item = (restrictToValid) ? gAmmoItems[ammoIndex] : gAllAmmoItems[ammoIndex];
@@ -669,6 +689,346 @@ void DrawInventoryTab() {
             DrawBGSItemFlag(i);
         }
         ImGui::TreePop();
+    }
+
+    ImGui::Spacing();
+    ImGui::Spacing();
+
+    // ============================================================================
+    // CUSTOM ITEMS INVENTORY (Page 2 - Slots 24-47)
+    // ============================================================================
+    if (ImGui::CollapsingHeader("Custom Items Inventory (Page 2)", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Quick action buttons
+        if (ImGui::Button("Give All Custom Items (Max)")) {
+            for (int i = 0; i < 24; i++) {
+                // Give max upgrade for progressive items
+                if (i == 0) {
+                    // Slot 24: Give Roc's Cape (max upgrade) instead of Roc's Feather
+                    gSaveContext.inventory.items[24 + i] = ITEM_ROCS_CAPE;
+                } else {
+                    gSaveContext.inventory.items[24 + i] = gPage2Items[i];
+                }
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Clear All Custom Items")) {
+            for (int i = 24; i < 48; i++) {
+                gSaveContext.inventory.items[i] = ITEM_NONE;
+            }
+        }
+
+        ImGui::Spacing();
+
+        // Draw custom items grid (4 rows x 6 columns = 24 items)
+        for (int32_t y = 0; y < 4; y++) {
+            for (int32_t x = 0; x < 6; x++) {
+                int32_t visualIndex = x + y * 6;      // 0-23 visual position
+                int32_t slotIndex = 24 + visualIndex; // 24-47 actual slot
+                static int32_t selectedCustomIndex = -1;
+                static const char* customItemPopupPicker = "customItemPopupPicker";
+
+                ImGui::PushID(1000 + slotIndex); // Unique ID offset to avoid conflicts
+
+                if (x != 0) {
+                    ImGui::SameLine();
+                }
+
+                uint8_t item = gSaveContext.inventory.items[slotIndex];
+
+                bool clicked = false;
+                if (item != ITEM_NONE) {
+                    auto it = customItemMapping.find(item);
+                    if (it != customItemMapping.end()) {
+                        const ItemMapEntry& slotEntry = it->second;
+                        auto tex =
+                            Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(slotEntry.name);
+                        if (tex) {
+                            clicked = ImGui::ImageButton(slotEntry.name.c_str(), tex, ImVec2(IMAGE_SIZE, IMAGE_SIZE),
+                                                         ImVec2(0, 0), ImVec2(1, 1));
+                        } else {
+                            PushStyleButton(Colors::DarkGray);
+                            clicked = ImGui::Button(slotEntry.name.c_str(), ImVec2(IMAGE_SIZE, IMAGE_SIZE) +
+                                                                                ImGui::GetStyle().FramePadding * 2);
+                            PopStyleButton();
+                        }
+                    } else {
+                        char buttonLabel[64];
+                        snprintf(buttonLabel, sizeof(buttonLabel), "0x%02X##customslot%d", item, slotIndex);
+                        PushStyleButton(Colors::DarkGray);
+                        clicked = ImGui::Button(buttonLabel,
+                                                ImVec2(IMAGE_SIZE, IMAGE_SIZE) + ImGui::GetStyle().FramePadding * 2);
+                        PopStyleButton();
+                    }
+                } else {
+                    PushStyleButton(Colors::DarkGray);
+                    clicked = ImGui::Button("##customItemNone",
+                                            ImVec2(IMAGE_SIZE, IMAGE_SIZE) + ImGui::GetStyle().FramePadding * 2);
+                    PopStyleButton();
+                }
+                if (clicked) {
+                    selectedCustomIndex = slotIndex;
+                    ImGui::OpenPopup(customItemPopupPicker);
+                }
+
+                // Tooltip showing slot number and item ID
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Slot %d", slotIndex);
+                    if (item != ITEM_NONE) {
+                        ImGui::Text("Item ID: 0x%02X", item);
+                    }
+                    ImGui::EndTooltip();
+                }
+
+                // Item picker popup for custom items
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+                if (ImGui::BeginPopup(customItemPopupPicker)) {
+                    // None button
+                    PushStyleButton(Colors::DarkGray);
+                    if (ImGui::Button("##customItemNonePicker",
+                                      ImVec2(IMAGE_SIZE, IMAGE_SIZE) + ImGui::GetStyle().FramePadding * 2)) {
+                        gSaveContext.inventory.items[selectedCustomIndex] = ITEM_NONE;
+                        ImGui::CloseCurrentPopup();
+                    }
+                    PopStyleButton();
+                    UIWidgets::Tooltip("None");
+
+                    // Show all 24 custom items from gPage2Items
+                    for (int32_t pickerIndex = 0; pickerIndex < 24; pickerIndex++) {
+                        if (((pickerIndex + 1) % 8) != 0) {
+                            ImGui::SameLine();
+                        }
+
+                        uint8_t customItemId = gPage2Items[pickerIndex];
+                        auto it = customItemMapping.find(customItemId);
+
+                        bool ret = false;
+                        if (it != customItemMapping.end()) {
+                            const ItemMapEntry& entry = it->second;
+                            auto tex =
+                                Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(entry.name);
+                            if (tex) {
+                                ret = ImGui::ImageButton(entry.name.c_str(), tex, ImVec2(IMAGE_SIZE, IMAGE_SIZE),
+                                                         ImVec2(0, 0), ImVec2(1, 1));
+                            } else {
+                                PushStyleButton(Colors::DarkGray);
+                                ret = ImGui::Button(entry.name.c_str(), ImVec2(IMAGE_SIZE, IMAGE_SIZE) +
+                                                                            ImGui::GetStyle().FramePadding * 2);
+                                PopStyleButton();
+                            }
+                            UIWidgets::Tooltip(entry.name.c_str());
+                        } else {
+                            char pickerLabel[64];
+                            snprintf(pickerLabel, sizeof(pickerLabel), "0x%02X##picker%d", customItemId, pickerIndex);
+                            PushStyleButton(Colors::DarkGray);
+                            ret = ImGui::Button(pickerLabel, ImVec2(IMAGE_SIZE, IMAGE_SIZE));
+                            PopStyleButton();
+                        }
+
+                        if (ret) {
+                            gSaveContext.inventory.items[selectedCustomIndex] = customItemId;
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+
+                    // Upgrade items (share slots with base items)
+                    ImGui::Spacing();
+                    ImGui::Text("Upgrades:");
+                    {
+                        auto it = customItemMapping.find(ITEM_ROCS_CAPE);
+                        bool ret = false;
+                        if (it != customItemMapping.end()) {
+                            const ItemMapEntry& entry = it->second;
+                            auto tex =
+                                Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(entry.name);
+                            if (tex) {
+                                ret = ImGui::ImageButton(entry.name.c_str(), tex, ImVec2(IMAGE_SIZE, IMAGE_SIZE),
+                                                         ImVec2(0, 0), ImVec2(1, 1));
+                            } else {
+                                PushStyleButton(Colors::DarkGray);
+                                ret =
+                                    ImGui::Button("ITEM_ROCS_CAPE##pickerCape",
+                                                  ImVec2(IMAGE_SIZE, IMAGE_SIZE) + ImGui::GetStyle().FramePadding * 2);
+                                PopStyleButton();
+                            }
+                        } else {
+                            PushStyleButton(Colors::DarkGray);
+                            ret = ImGui::Button("ITEM_ROCS_CAPE##pickerCape",
+                                                ImVec2(IMAGE_SIZE, IMAGE_SIZE) + ImGui::GetStyle().FramePadding * 2);
+                            PopStyleButton();
+                        }
+
+                        if (ret) {
+                            gSaveContext.inventory.items[selectedCustomIndex] = ITEM_ROCS_CAPE;
+                            ImGui::CloseCurrentPopup();
+                        }
+                        UIWidgets::Tooltip("Roc's Cape (upgrade)\nShares slot 24 with Roc's Feather");
+                    }
+
+                    ImGui::EndPopup();
+                }
+                ImGui::PopStyleVar();
+
+                ImGui::PopID();
+            }
+        }
+    }
+
+    ImGui::Spacing();
+    ImGui::Spacing();
+
+    // ============================================================================
+    // MM MASKS INVENTORY (Page 3 - Slots 48-71)
+    // ============================================================================
+    if (ImGui::CollapsingHeader("MM Masks Inventory (Page 3)")) {
+        static const char* sMmMaskNames[24] = {
+            "Postman's Hat", "All-Night Mask", "Blast Mask",   "Stone Mask",      "Great Fairy Mask", "Deku Mask",
+            "Keaton Mask",   "Bremen Mask",    "Bunny Hood",   "Don Gero's Mask", "Mask of Scents",   "Goron Mask",
+            "Romani's Mask", "Circus Leader",  "Kafei's Mask", "Couple's Mask",   "Mask of Truth",    "Zora Mask",
+            "Kamaro's Mask", "Gibdo Mask",     "Garo Mask",    "Captain's Hat",   "Giant's Mask",     "Fierce Deity",
+        };
+
+        // MM mask icon OTR paths for lazy registration
+        static const char* sMmMaskIconOtrPaths[24] = {
+            "__OTR__icon_item_static_yar/gItemIconPostmansHatTex",
+            "__OTR__icon_item_static_yar/gItemIconAllNightMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconBlastMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconStoneMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconGreatFairyMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconDekuMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconKeatonMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconBremenMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconBunnyHoodTex",
+            "__OTR__icon_item_static_yar/gItemIconDonGeroMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconMaskOfScentsTex",
+            "__OTR__icon_item_static_yar/gItemIconGoronMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconRomaniMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconCircusLeaderMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconKafeisMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconCouplesMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconMaskOfTruthTex",
+            "__OTR__icon_item_static_yar/gItemIconZoraMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconKamaroMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconGibdoMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconGaroMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconCaptainsHatTex",
+            "__OTR__icon_item_static_yar/gItemIconGiantsMaskTex",
+            "__OTR__icon_item_static_yar/gItemIconFierceDeityMaskTex",
+        };
+
+        // Lazy-register MM mask icon textures with the GUI system (once)
+        static bool sMmIconsRegistered = false;
+        if (!sMmIconsRegistered) {
+            sMmIconsRegistered = true;
+            auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
+            for (int i = 0; i < 24; i++) {
+                gui->LoadGuiTexture(sMmMaskNames[i], sMmMaskIconOtrPaths[i], ImVec4(1, 1, 1, 1));
+            }
+        }
+
+        if (ImGui::Button("Give All MM Masks")) {
+            for (int i = 0; i < 24; i++) {
+                gSaveContext.inventory.items[48 + i] = gPage3MaskItems[i];
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Clear All MM Masks")) {
+            for (int i = 48; i < 72; i++) {
+                gSaveContext.inventory.items[i] = ITEM_NONE;
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Give Random MM Mask")) {
+            // Find an empty slot and give a random mask
+            std::vector<int> emptySlots;
+            for (int i = 0; i < 24; i++) {
+                if (gSaveContext.inventory.items[48 + i] == ITEM_NONE) {
+                    emptySlots.push_back(i);
+                }
+            }
+            if (!emptySlots.empty()) {
+                int r = emptySlots[rand() % emptySlots.size()];
+                gSaveContext.inventory.items[48 + r] = gPage3MaskItems[r];
+            }
+        }
+
+        ImGui::Spacing();
+
+        // Draw MM masks grid (4 rows x 6 columns = 24 masks) with icons
+        for (int32_t y = 0; y < 4; y++) {
+            for (int32_t x = 0; x < 6; x++) {
+                int32_t visualIndex = x + y * 6;
+                int32_t slotIndex = 48 + visualIndex;
+
+                ImGui::PushID(2000 + slotIndex);
+
+                if (x != 0) {
+                    ImGui::SameLine();
+                }
+
+                uint8_t item = gSaveContext.inventory.items[slotIndex];
+                const char* maskName = sMmMaskNames[visualIndex];
+                bool hasItem = (item != ITEM_NONE);
+
+                // Try to get the registered icon texture
+                auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
+                auto tex = gui->GetTextureByName(maskName);
+
+                if (tex) {
+                    // Icon available - render like vanilla inventory
+                    PushStyleButton(hasItem ? Colors::DarkGray : Colors::DarkGray);
+                    bool clicked;
+                    if (hasItem) {
+                        clicked = ImGui::ImageButton(maskName, tex, ImVec2(IMAGE_SIZE, IMAGE_SIZE), ImVec2(0, 0),
+                                                     ImVec2(1, 1));
+                    } else {
+                        // Faded/empty slot
+                        clicked = ImGui::ImageButton(maskName, tex, ImVec2(IMAGE_SIZE, IMAGE_SIZE), ImVec2(0, 0),
+                                                     ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
+                    }
+                    PopStyleButton();
+
+                    if (clicked) {
+                        if (hasItem) {
+                            gSaveContext.inventory.items[slotIndex] = ITEM_NONE;
+                        } else {
+                            gSaveContext.inventory.items[slotIndex] = gPage3MaskItems[visualIndex];
+                        }
+                    }
+                } else {
+                    // Fallback: text button (mm.o2r not available)
+                    char buttonLabel[64];
+                    if (hasItem) {
+                        snprintf(buttonLabel, sizeof(buttonLabel), "%s##mmslot%d", maskName, slotIndex);
+                        PushStyleButton(Colors::Green);
+                    } else {
+                        snprintf(buttonLabel, sizeof(buttonLabel), "---##mmslot%d", slotIndex);
+                        PushStyleButton(Colors::DarkGray);
+                    }
+
+                    if (ImGui::Button(buttonLabel,
+                                      ImVec2(IMAGE_SIZE + 20, IMAGE_SIZE) + ImGui::GetStyle().FramePadding * 2)) {
+                        if (hasItem) {
+                            gSaveContext.inventory.items[slotIndex] = ITEM_NONE;
+                        } else {
+                            gSaveContext.inventory.items[slotIndex] = gPage3MaskItems[visualIndex];
+                        }
+                    }
+                    PopStyleButton();
+                }
+
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Slot %d: %s", slotIndex, maskName);
+                    if (hasItem) {
+                        ImGui::Text("Item ID: 0x%02X", item);
+                    }
+                    ImGui::EndTooltip();
+                }
+
+                ImGui::PopID();
+            }
+        }
     }
 }
 
@@ -1406,6 +1766,128 @@ void DrawEquipmentTab() {
         "40",
     };
     DrawUpgrade("Deku Nut Capacity", UPG_NUTS, nutNames);
+
+    // ============================================================================
+    // EXTENDED EQUIPMENT (Page 2)
+    // ============================================================================
+    if (ImGui::CollapsingHeader("Extended Equipment (Page 2)")) {
+        static const char* extEquipNames[4][3] = {
+            { "Cane of Byrna", "Four Sword", "Drillshaft" },
+            { "Divine Shield", "Gerudo Scimitar", "Shield of Ikana" },
+            { "Magic Cape", "Pending 4", "Champion's Tunic" },
+            { "Pegasus Anklet", "Pendant of Memories", "Water Dragon Scale" },
+        };
+        // OTR icon paths for each ext equipment piece (same order as item IDs)
+        static const char* extEquipIconPaths[4][3] = {
+            { dgItemIconCaneOfByrnaTex, dgItemIconFourSwordTex, dgItemIconDrillshaftTex },
+            { dgItemIconDivineShieldTex, dgItemIconGerudoScimitarTex, NULL }, // Shield of Ikana: no icon yet
+            { dgItemIconMagicCapeTex, dgItemIconPending4Tex, dgItemIconChampionsTunicTex },
+            { dgItemIconPegasusAnkletTex, NULL, dgItemIconWaterDragonScaleTex }, // Pendant: no icon yet
+        };
+
+        // Enable/disable cheat toggle
+        bool extEnabled = CVarGetInteger(CVAR_EXT_EQUIP_ENABLED, 0) != 0;
+        if (ImGui::Checkbox("Extended Equipment Enabled", &extEnabled)) {
+            CVarSetInteger(CVAR_EXT_EQUIP_ENABLED, extEnabled ? 1 : 0);
+            if (extEnabled) {
+                ExtEquip_Init();
+            }
+        }
+
+        if (extEnabled) {
+            // Give All / Clear All buttons
+            if (ImGui::Button("Give All Extended Equipment")) {
+                for (int row = 0; row < 4; row++) {
+                    for (int col = 1; col <= 3; col++) {
+                        ExtEquip_GiveItem(row, col);
+                    }
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Clear All Extended Equipment")) {
+                for (int row = 0; row < 4; row++) {
+                    for (int col = 1; col <= 3; col++) {
+                        ExtEquip_RemoveItem(row, col);
+                    }
+                }
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // Draw equipment grid: 4 rows x 3 columns (like vanilla equipment)
+            auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 3; col++) {
+                    if (col != 0) {
+                        ImGui::SameLine();
+                    }
+
+                    ImGui::PushID(2000 + row * 3 + col);
+
+                    bool owned = ExtEquip_HasItem(row, col + 1) != 0;
+                    u8 currentEquipped = ExtEquip_GetCurrent(row);
+                    bool isEquipped = (currentEquipped == (col + 1));
+
+                    // Green border if equipped
+                    if (isEquipped) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.5f, 0.1f, 1.0f));
+                        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+                    } else {
+                        PushStyleButton(Colors::DarkGray);
+                    }
+
+                    bool clicked = false;
+                    const char* iconPath = extEquipIconPaths[row][col];
+                    if (iconPath != NULL) {
+                        auto tex = gui->GetTextureByName(iconPath);
+                        if (tex) {
+                            // Faded if not owned
+                            ImVec4 tint = owned ? ImVec4(1, 1, 1, 1) : ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+                            clicked = ImGui::ImageButton(extEquipNames[row][col], tex, ImVec2(IMAGE_SIZE, IMAGE_SIZE),
+                                                         ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), tint);
+                        } else {
+                            clicked = ImGui::Button(extEquipNames[row][col], ImVec2(IMAGE_SIZE, IMAGE_SIZE) +
+                                                                                 ImGui::GetStyle().FramePadding * 2);
+                        }
+                    } else {
+                        // No icon available, use text button
+                        clicked = ImGui::Button(extEquipNames[row][col],
+                                                ImVec2(IMAGE_SIZE, IMAGE_SIZE) + ImGui::GetStyle().FramePadding * 2);
+                    }
+
+                    if (clicked) {
+                        // Toggle ownership
+                        if (owned) {
+                            ExtEquip_RemoveItem(row, col + 1);
+                        } else {
+                            ExtEquip_GiveItem(row, col + 1);
+                        }
+                    }
+
+                    if (isEquipped) {
+                        ImGui::PopStyleColor(2);
+                    } else {
+                        PopStyleButton();
+                    }
+
+                    // Tooltip
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("%s", extEquipNames[row][col]);
+                        ImGui::Text(owned ? "Owned" : "Not Owned");
+                        if (isEquipped) {
+                            ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "EQUIPPED");
+                        }
+                        ImGui::EndTooltip();
+                    }
+
+                    ImGui::PopID();
+                }
+            }
+        }
+    }
 
     if (IS_RANDO &&
         OTRGlobals::Instance->gRandomizer->GetRandoSettingValue(RSK_BOMBCHU_BAG) == RO_BOMBCHU_BAG_PROGRESSIVE) {

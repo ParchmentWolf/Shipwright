@@ -134,6 +134,52 @@ std::map<uint32_t, ItemMapEntry> itemMapping = {
     ITEM_MAP_ENTRY(ITEM_MAGIC_LARGE),
 };
 
+// Custom items mapping (second inventory page)
+std::map<uint32_t, ItemMapEntry> customItemMapping = {
+    { ITEM_ROCS_FEATHER_SKIJER,
+      { ITEM_ROCS_FEATHER_SKIJER, "ITEM_ROCS_FEATHER_SKIJER", "ITEM_ROCS_FEATHER_SKIJER_Faded",
+        (char*)gItemIconRocsFeatherTex } },
+    { ITEM_ROCS_CAPE, { ITEM_ROCS_CAPE, "ITEM_ROCS_CAPE", "ITEM_ROCS_CAPE_Faded", (char*)gItemIconRocsCapeTex } },
+    { ITEM_DESIRE_SENSOR,
+      { ITEM_DESIRE_SENSOR, "ITEM_DESIRE_SENSOR", "ITEM_DESIRE_SENSOR_Faded", (char*)gItemIconDesireSensorTex } },
+    { ITEM_HYLIAS_GRACE,
+      { ITEM_HYLIAS_GRACE, "ITEM_HYLIAS_GRACE", "ITEM_HYLIAS_GRACE_Faded", (char*)gItemIconHyliaGraceTex } },
+    { ITEM_ZONAI_PERMAFROST,
+      { ITEM_ZONAI_PERMAFROST, "ITEM_ZONAI_PERMAFROST", "ITEM_ZONAI_PERMAFROST_Faded",
+        (char*)gItemIconZonaiPermafrostTex } },
+    { ITEM_DEMISE_DESTRUCTION,
+      { ITEM_DEMISE_DESTRUCTION, "ITEM_DEMISE_DESTRUCTION", "ITEM_DEMISE_DESTRUCTION_Faded",
+        (char*)gItemIconDemiseDestructionTex } },
+    { ITEM_DEKU_LEAF, { ITEM_DEKU_LEAF, "ITEM_DEKU_LEAF", "ITEM_DEKU_LEAF_Faded", (char*)gItemIconDekuLeafTex } },
+    { ITEM_SWITCH_HOOK,
+      { ITEM_SWITCH_HOOK, "ITEM_SWITCH_HOOK", "ITEM_SWITCH_HOOK_Faded", (char*)gItemIconSwitchHookTex } },
+    { ITEM_MOGMA_MITTS,
+      { ITEM_MOGMA_MITTS, "ITEM_MOGMA_MITTS", "ITEM_MOGMA_MITTS_Faded", (char*)gItemIconMogmaMittsTex } },
+    { ITEM_GUST_JAR, { ITEM_GUST_JAR, "ITEM_GUST_JAR", "ITEM_GUST_JAR_Faded", (char*)gItemIconGustJarTex } },
+    { ITEM_BALL_AND_CHAIN,
+      { ITEM_BALL_AND_CHAIN, "ITEM_BALL_AND_CHAIN", "ITEM_BALL_AND_CHAIN_Faded", (char*)gItemIconBallAndChainTex } },
+    { ITEM_WHIP, { ITEM_WHIP, "ITEM_WHIP", "ITEM_WHIP_Faded", (char*)gItemIconWhipTex } },
+    { ITEM_SPINNER, { ITEM_SPINNER, "ITEM_SPINNER", "ITEM_SPINNER_Faded", (char*)gItemIconSpinnerTex } },
+    { ITEM_CANE_OF_SOMARIA,
+      { ITEM_CANE_OF_SOMARIA, "ITEM_CANE_OF_SOMARIA", "ITEM_CANE_OF_SOMARIA_Faded",
+        (char*)gItemIconCaneOfSomariaTex } },
+    { ITEM_DOMINION_ROD,
+      { ITEM_DOMINION_ROD, "ITEM_DOMINION_ROD", "ITEM_DOMINION_ROD_Faded", (char*)gItemIconDominionRodTex } },
+    { ITEM_TIME_GATE, { ITEM_TIME_GATE, "ITEM_TIME_GATE", "ITEM_TIME_GATE_Faded", (char*)gItemIconTimeGateTex } },
+    { ITEM_BOMB_ARROWS,
+      { ITEM_BOMB_ARROWS, "ITEM_BOMB_ARROWS", "ITEM_BOMB_ARROWS_Faded", (char*)gItemIconBombArrowsTex } },
+    { ITEM_ROD_FIRE, { ITEM_ROD_FIRE, "ITEM_ROD_FIRE", "ITEM_ROD_FIRE_Faded", (char*)gItemIconFireRodTex } },
+    { ITEM_ROD_ICE, { ITEM_ROD_ICE, "ITEM_ROD_ICE", "ITEM_ROD_ICE_Faded", (char*)gItemIconIceRodTex } },
+    { ITEM_ROD_LIGHT, { ITEM_ROD_LIGHT, "ITEM_ROD_LIGHT", "ITEM_ROD_LIGHT_Faded", (char*)gItemIconLightRodTex } },
+    { ITEM_BEETLE, { ITEM_BEETLE, "ITEM_BEETLE", "ITEM_BEETLE_Faded", (char*)gItemIconBeetleTex } },
+    { ITEM_SHOVEL, { ITEM_SHOVEL, "ITEM_SHOVEL", "ITEM_SHOVEL_Faded", (char*)gItemIconShovelTex } },
+    { ITEM_MINISH_CAP, { ITEM_MINISH_CAP, "ITEM_MINISH_CAP", "ITEM_MINISH_CAP_Faded", (char*)gItemIconMinishCapTex } },
+    { ITEM_LANTERN, { ITEM_LANTERN, "ITEM_LANTERN", "ITEM_LANTERN_Faded", (char*)gItemIconPending2Tex } },
+    { ITEM_CHATEAU_ROMANI,
+      { ITEM_CHATEAU_ROMANI, "ITEM_CHATEAU_ROMANI", "ITEM_CHATEAU_ROMANI_Faded", (char*)gItemIconChateauRomaniTex } },
+    { ITEM_POKEBALL, { ITEM_POKEBALL, "ITEM_POKEBALL", "ITEM_POKEBALL_Faded", (char*)gItemIconPokeballTex } },
+};
+
 std::map<uint32_t, ItemMapEntry> gregMapping = {
     { ITEM_RUPEE_GREEN, { ITEM_RUPEE_GREEN, "ITEM_RUPEE_GREEN", "ITEM_RUPEE_GREEN_Faded", gRupeeCounterIconTex } }
 };
@@ -223,6 +269,17 @@ void RegisterImGuiItemIcons() {
             ->LoadGuiTexture(entry.second.name, entry.second.texturePath, ImVec4(1, 1, 1, 1));
         std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
             ->LoadGuiTexture(entry.second.nameFaded, entry.second.texturePath, ImVec4(1, 1, 1, 0.3f));
+    }
+
+    for (const auto& entry : customItemMapping) {
+        // Custom item icons are in soh.o2r — skip if resource not found (OTR not regenerated yet)
+        auto res = Ship::Context::GetInstance()->GetResourceManager()->LoadResource(entry.second.texturePath, true);
+        if (res) {
+            Ship::Context::GetInstance()->GetWindow()->GetGui()->LoadGuiTexture(
+                entry.second.name, entry.second.texturePath, ImVec4(1, 1, 1, 1));
+            Ship::Context::GetInstance()->GetWindow()->GetGui()->LoadGuiTexture(
+                entry.second.nameFaded, entry.second.texturePath, ImVec4(1, 1, 1, 0.3f));
+        }
     }
 
     for (const auto& entry : gregMapping) {

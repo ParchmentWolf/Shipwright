@@ -2999,7 +2999,9 @@ void CollisionCheck_ApplyDamage(PlayState* play, CollisionCheckContext* colChkCt
     if (collider->actor == NULL || !(collider->acFlags & AC_HIT)) {
         return;
     }
-    if (!(info->bumperFlags & BUMP_HIT) || info->bumperFlags & BUMP_NO_DAMAGE) {
+    if (!(info->bumperFlags & BUMP_HIT) ||
+        (info->bumperFlags & BUMP_NO_DAMAGE &&
+         !(info->acHitInfo && info->acHitInfo->toucher.dmgFlags & DMG_UNBLOCKABLE))) {
         return;
     }
 
@@ -3023,12 +3025,22 @@ void CollisionCheck_ApplyDamage(PlayState* play, CollisionCheckContext* colChkCt
         damage = tbl->table[i] & 0xF;
         collider->actor->colChkInfo.damageEffect = tbl->table[i] >> 4 & 0xF;
     }
+    // DMG_UNBLOCKABLE (Gigantamax Pikachu): bypass damage table, force minimum damage
+    if (info->acHitInfo->toucher.dmgFlags & DMG_UNBLOCKABLE) {
+        if (damage < 4)
+            damage = 4; // Minimum 4 damage regardless of resistance
+    }
     if (!(collider->acFlags & AC_HARD)) {
         collider->actor->colChkInfo.damage += damage;
     }
 
-    if (CVarGetInteger(CVAR_ENHANCEMENT("IvanCoopModeEnabled"), 0)) {
-        collider->actor->colChkInfo.damage *= GET_PLAYER(play)->ivanDamageMultiplier;
+    {
+        extern u8 gIvanPossessActive;
+        extern u8 Sm64Mario_IsReady(void);
+        if (CVarGetInteger(CVAR_ENHANCEMENT("IvanCoopModeEnabled"), 0) || gIvanPossessActive ||
+            Sm64Mario_IsReady()) {
+            collider->actor->colChkInfo.damage *= GET_PLAYER(play)->ivanDamageMultiplier;
+        }
     }
 }
 
@@ -3650,8 +3662,13 @@ u8 CollisionCheck_GetSwordDamage(s32 dmgFlags, PlayState* play) {
         damage = 8;
     }
 
-    if (CVarGetInteger(CVAR_ENHANCEMENT("IvanCoopModeEnabled"), 0)) {
-        damage *= GET_PLAYER(play)->ivanDamageMultiplier;
+    {
+        extern u8 gIvanPossessActive;
+        extern u8 Sm64Mario_IsReady(void);
+        if (CVarGetInteger(CVAR_ENHANCEMENT("IvanCoopModeEnabled"), 0) || gIvanPossessActive ||
+            Sm64Mario_IsReady()) {
+            damage *= GET_PLAYER(play)->ivanDamageMultiplier;
+        }
     }
 
     KREG(7) = damage;

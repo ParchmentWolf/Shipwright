@@ -6,6 +6,7 @@
 #include "soh/util.h"
 #include <soh/Network/Sail/Sail.h>
 #include <soh/Network/CrowdControl/CrowdControl.h>
+#include <soh/Network/Anchor/Anchor.h>
 
 namespace SohGui {
 
@@ -28,6 +29,12 @@ void SohMenu::AddMenuNetwork() {
         .Options(TextOptions().Color(Colors::Orange));
     return;
 #endif
+
+    // Anchor
+    path = { "Network", "Anchor", SECTION_COLUMN_1 };
+    AddSidebarEntry("Network", path.sidebarName, 3);
+
+    // Harpoon sidebar is registered by HarpoonMenu.cpp via RegisterMenuInitFunc
 
     // Sail
     path = { "Network", "Sail", SECTION_COLUMN_1 };
@@ -181,8 +188,6 @@ void SohMenu::AddMenuNetwork() {
         .RaceDisable(true)
         .Options(CheckboxOptions().Tooltip("Enemies spawned by CrowdControl won't be considered for \"clear enemy "
                                            "rooms\", so they don't need to be killed to complete these rooms."));
-    path.sidebarName = "Anchor";
-    AddSidebarEntry("Network", path.sidebarName, 2);
 }
 
 } // namespace SohGui

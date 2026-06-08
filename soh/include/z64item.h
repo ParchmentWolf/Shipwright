@@ -146,9 +146,32 @@ typedef enum {
     /* 0x1B */ SLOT_BOOTS_KOKIRI,
     /* 0x1C */ SLOT_BOOTS_IRON,
     /* 0x1D */ SLOT_BOOTS_HOVER,
-    /* 0x1E */ SLOT_SHIELD_DEKU,
-    /* 0x1F */ SLOT_SHIELD_HYLIAN,
-    /* 0x20 */ SLOT_SHIELD_MIRROR,
+    // Custom item slots (Page 2 of inventory menu)
+    /* 0x1E */ SLOT_ROCS_FEATHER_SKIJER,
+    /* 0x1F */ SLOT_ROCS_CAPE,
+    /* 0x20 */ SLOT_HYLIAS_GRACE,
+    /* 0x21 */ SLOT_ZONAI_PERMAFROST,
+    /* 0x22 */ SLOT_DEMISE_DESTRUCTION,
+    /* 0x23 */ SLOT_DEKU_LEAF,
+    /* 0x24 */ SLOT_SWITCH_HOOK,
+    /* 0x25 */ SLOT_MOGMA_MITTS,
+    /* 0x26 */ SLOT_GUST_JAR,
+    /* 0x27 */ SLOT_BALL_AND_CHAIN,
+    /* 0x28 */ SLOT_WHIP,
+    /* 0x29 */ SLOT_SPINNER,
+    /* 0x2A */ SLOT_CANE_OF_SOMARIA,
+    /* 0x2B */ SLOT_DOMINION_ROD,
+    /* 0x2C */ SLOT_TIME_GATE,
+    /* 0x2D */ SLOT_BOW_AND_BOMBS,
+    /* 0x2E */ SLOT_ROD_FIRE,
+    /* 0x2F */ SLOT_ROD_ICE,
+    /* 0x30 */ SLOT_ROD_LIGHT,
+    /* 0x31 */ SLOT_BEETLE,
+    /* 0x32 */ SLOT_SHOVEL,
+    // AssignableTunicsAndBoots enhancement slots (moved after custom items to avoid conflicts)
+    /* 0x33 */ SLOT_SHIELD_DEKU,
+    /* 0x34 */ SLOT_SHIELD_HYLIAN,
+    /* 0x35 */ SLOT_SHIELD_MIRROR,
     /* 0xFF */ SLOT_NONE = 0xFF
 } InventorySlot;
 
@@ -311,6 +334,84 @@ typedef enum {
     /* 0x9B */ ITEM_NUT_UPGRADE_40,
     /* 0x9C */ ITEM_CUSTOM,
     /* 0x9D */ ITEM_ROCS_FEATHER,
+    // Custom items (for second inventory page) - start at 0x9E
+    /* 0x9E */ ITEM_ROCS_FEATHER_SKIJER = 0x9E,
+    /* 0x9F */ ITEM_ROCS_CAPE,
+    /* 0xA0 */ ITEM_DESIRE_SENSOR,
+    /* 0xA1 */ ITEM_HYLIAS_GRACE,
+    /* 0xA2 */ ITEM_ZONAI_PERMAFROST,
+    /* 0xA3 */ ITEM_DEMISE_DESTRUCTION,
+    /* 0xA4 */ ITEM_DEKU_LEAF,
+    /* 0xA5 */ ITEM_SWITCH_HOOK,
+    /* 0xA6 */ ITEM_MOGMA_MITTS,
+    /* 0xA7 */ ITEM_GUST_JAR,
+    /* 0xA8 */ ITEM_BALL_AND_CHAIN,
+    /* 0xA9 */ ITEM_WHIP,
+    /* 0xAA */ ITEM_SPINNER,
+    /* 0xAB */ ITEM_CANE_OF_SOMARIA,
+    /* 0xAC */ ITEM_DOMINION_ROD,
+    /* 0xAD */ ITEM_TIME_GATE,
+    /* 0xAE */ ITEM_BOMB_ARROWS,
+    /* 0xAF */ ITEM_ROD_FIRE,
+    /* 0xB0 */ ITEM_ROD_ICE,
+    /* 0xB1 */ ITEM_ROD_LIGHT,
+    /* 0xB2 */ ITEM_BEETLE,
+    /* 0xB3 */ ITEM_SHOVEL,
+    /* 0xB4 */ ITEM_MINISH_CAP,
+    /* 0xB5 */ ITEM_LANTERN,
+    /* 0xB6 */ ITEM_CHATEAU_ROMANI,
+    /* 0xB7 */ ITEM_POKEBALL,
+    // MM Mask items (for 3rd inventory page)
+    /* 0xB8 */ ITEM_MM_MASK_POSTMAN = 0xB8,
+    /* 0xB9 */ ITEM_MM_MASK_ALL_NIGHT,
+    /* 0xBA */ ITEM_MM_MASK_BLAST,
+    /* 0xBB */ ITEM_MM_MASK_STONE,
+    /* 0xBC */ ITEM_MM_MASK_GREAT_FAIRY,
+    /* 0xBD */ ITEM_MM_MASK_DEKU,
+    /* 0xBE */ ITEM_MM_MASK_KEATON,
+    /* 0xBF */ ITEM_MM_MASK_BREMEN,
+    /* 0xC0 */ ITEM_MM_MASK_BUNNY,
+    /* 0xC1 */ ITEM_MM_MASK_DON_GERO,
+    /* 0xC2 */ ITEM_MM_MASK_SCENTS,
+    /* 0xC3 */ ITEM_MM_MASK_GORON,
+    /* 0xC4 */ ITEM_MM_MASK_ROMANI,
+    /* 0xC5 */ ITEM_MM_MASK_CIRCUS_LEADER,
+    /* 0xC6 */ ITEM_MM_MASK_KAFEI,
+    /* 0xC7 */ ITEM_MM_MASK_COUPLE,
+    /* 0xC8 */ ITEM_MM_MASK_TRUTH,
+    /* 0xC9 */ ITEM_MM_MASK_ZORA,
+    /* 0xCA */ ITEM_MM_MASK_KAMARO,
+    /* 0xCB */ ITEM_MM_MASK_GIBDO,
+    /* 0xCC */ ITEM_MM_MASK_GARO,
+    /* 0xCD */ ITEM_MM_MASK_CAPTAIN,
+    /* 0xCE */ ITEM_MM_MASK_GIANT,
+    /* 0xCF */ ITEM_MM_MASK_FIERCE_DEITY,
+    // SW97 Medallion arrow items (arrow mode on C-buttons)
+    /* 0xD0 */ ITEM_SW97_ARROW_FIRE,
+    /* 0xD1 */ ITEM_SW97_ARROW_ICE,
+    /* 0xD2 */ ITEM_SW97_ARROW_LIGHT,
+    /* 0xD3 */ ITEM_SW97_ARROW_DARK,
+    /* 0xD4 */ ITEM_SW97_ARROW_SOUL,
+    /* 0xD5 */ ITEM_SW97_ARROW_WIND,
+    // SM64 Mario mode toggle item — locked to C-Down via gSm64MarioMaskForce
+    // CVar; pressing C-Down with this item equipped toggles gSm64Mario.
+    /* 0xD6 */ ITEM_MARIO_MASK,
+    // Prop Hunt button icons (Harpoon multiplayer mode). Slotted into the
+    // C-buttons + D-pad while a hider is in "prop mode" so they show the
+    // cycling controls instead of vanilla item icons. No gameplay action
+    // — used purely as render hints. Texture paths resolved in
+    // ExtInv_GetItemIcon → gItemIconPropHunt*Tex.
+    /* 0xD7 */ ITEM_PH_ICON_POT,
+    /* 0xD8 */ ITEM_PH_ICON_ENEMY,
+    /* 0xD9 */ ITEM_PH_ICON_NPC,
+    /* 0xDA */ ITEM_PH_ICON_CHANGE,
+    /* 0xDB */ ITEM_PH_ICON_PREV,
+    /* 0xDC */ ITEM_PH_ICON_NEXT,
+    // Magic Mushroom — caught from Mask of Scents spots in Lost Woods.
+    // ITEM_MAGIC_MUSHROOM is the bottle-contents id (analogous to ITEM_BUG),
+    // ITEM_BOTTLE_WITH_MAGIC_MUSHROOM is the filled bottle id stored in SLOT_BOTTLE_*.
+    /* 0xDD */ ITEM_MAGIC_MUSHROOM,
+    /* 0xDE */ ITEM_BOTTLE_WITH_MAGIC_MUSHROOM,
     /* 0xFC */ ITEM_LAST_USED = 0xFC,
     /* 0xFE */ ITEM_NONE_FE = 0xFE,
     /* 0xFF */ ITEM_NONE = 0xFF
@@ -462,7 +563,7 @@ typedef enum {
     /* 0x7B */ GI_BULLET_BAG_50,
     /* 0x7C */ GI_ICE_TRAP, // freezes link when opened from a chest
     /* 0x7D */ GI_TEXT_0,   // no model appears over Link, shows text id 0 (pocket egg)
-    /* 0x84 */ GI_MAX
+    /* 0x7E */ GI_MAX
 } GetItemID;
 
 typedef enum {
@@ -595,8 +696,8 @@ typedef enum {
     /* 0x7B */ GID_SONG_STORM,
     /* 0x7C */ GID_TRIFORCE_PIECE,
     /* 0x7D */ GID_FISHING_POLE,
-    /* 0x7E */ GID_MAXIMUM
-
+    /* 0x7E */ GID_ROCS_FEATHER_SKIJER,
+    /* 0x7F */ GID_MAXIMUM
 } GetItemDrawID;
 
 typedef enum {

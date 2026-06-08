@@ -21,7 +21,12 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/SaveManager.h"
 #include "soh/Enhancements/kaleido.h"
+#include "soh/Enhancements/custom-message/PauseItemDescriptions.h"
 #include <soh_assets.h>
+
+#include "mods/extended_inventory.h"
+#include "mods/extended_equipment.h"
+#include "mods/transformation_masks/transformation_masks.h"
 
 static void* sEquipmentFRATexs[] = {
     gPauseEquipment00FRATex, gPauseEquipment01Tex, gPauseEquipment02Tex, gPauseEquipment03Tex, gPauseEquipment04Tex,
@@ -249,501 +254,146 @@ static void* sSaveTexs[] = {
 
 static void* iconNameTextures[] = {
     // LANGUAGE_ENG
-    gDekuStickItemNameENGTex,
-    gDekuNutItemNameENGTex,
-    gBombItemNameENGTex,
-    gFairyBowItemNameENGTex,
-    gFireArrowItemNameENGTex,
-    gDinsFireItemNameENGTex,
-    gFairySlingshotItemNameENGTex,
-    gFairyOcarinaItemNameENGTex,
-    gOcarinaOfTimeItemNameENGTex,
-    gBombchuItemNameENGTex,
-    gHookshotItemNameENGTex,
-    gLongshotItemNameENGTex,
-    gIceArrowItemNameENGTex,
-    gFaroresWindItemNameENGTex,
-    gBoomerangItemNameENGTex,
-    gLensItemNameENGTex,
-    gMagicBeansItemNameENGTex,
-    gMegatonHammerItemNameENGTex,
-    gLightArrowItemNameENGTex,
-    gNayrusLoveItemNameENGTex,
-    gEmptyBottleItemNameENGTex,
-    gRedPotionItemNameENGTex,
-    gGreenPotionItemNameENGTex,
-    gBluePotionItemNameENGTex,
-    gBottledFairyItemNameENGTex,
-    gFishItemNameENGTex,
-    gFullMilkItemNameENGTex,
-    gRutosLetterItemNameENGTex,
-    gBlueFireItemNameENGTex,
-    gBugItemNameENGTex,
-    gBigPoeItemNameENGTex,
-    gHalfMilkItemNameENGTex,
-    gPoeItemNameENGTex,
-    gWeirdEggItemNameENGTex,
-    gCuccoItemNameENGTex,
-    gZeldasLetterItemNameENGTex,
-    gKeatonMaskItemNameENGTex,
-    gSkullMaskItemNameENGTex,
-    gSpookyMaskItemNameENGTex,
-    gBunnyHoodItemNameENGTex,
-    gGoronMaskItemNameENGTex,
-    gZoraMaskItemNameENGTex,
-    gGerudoMaskItemNameENGTex,
-    gMaskofTruthItemNameENGTex,
-    gSOLDOUTItemNameENGTex,
-    gPocketEggItemNameENGTex,
-    gPocketCuccoItemNameENGTex,
-    gCojiroItemNameENGTex,
-    gOddMushroomItemNameENGTex,
-    gOddPotionItemNameENGTex,
-    gPoachersSawItemNameENGTex,
-    gBrokenGoronsSwordItemNameENGTex,
-    gPrescriptionItemNameENGTex,
-    gEyeBallFrogItemNameENGTex,
-    gEyeDropsItemNameENGTex,
-    gClaimCheckItemNameENGTex,
-    gUnusedWindMedallionItemName1JPNTex,
-    gUnusedFireMedallionItemName1JPNTex,
-    gUnusedIceMedallionItemName1JPNTex,
-    gKokiriSwordItemNameENGTex,
-    gMasterSwordItemNameENGTex,
-    gGiantsKnifeItemNameENGTex,
-    gDekuShieldItemNameENGTex,
-    gHylianShieldItemNameENGTex,
-    gMirrorShieldItemNameENGTex,
-    gKokiriTunicItemNameENGTex,
-    gGoronTunicItemNameENGTex,
-    gZoraTunicItemNameENGTex,
-    gKokiriBootsItemNameENGTex,
-    gIronBootsItemNameENGTex,
-    gHoverBootsItemNameENGTex,
-    gBulletBag30ItemNameENGTex,
-    gBulletBag40ItemNameENGTex,
-    gBulletBag50ItemNameENGTex,
-    gQuiver30ItemNameENGTex,
-    gQuiver40ItemNameENGTex,
-    gQuiver50ItemNameENGTex,
-    gBombBag20ItemNameENGTex,
-    gBombBag30ItemNameENGTex,
-    gBombBag40ItemNameENGTex,
-    gGoronsBraceletItemNameENGTex,
-    gSilverGauntletsItemNameENGTex,
-    gGoldenGauntletsItemNameENGTex,
-    gSilverScaleItemNameENGTex,
-    gGoldenScaleItemNameENGTex,
-    gBrokenGiantsKnifeItemNameENGTex,
-    gUnusedBossKeyItemName1JPNTex,
-    gUnusedBossKeyItemName2JPNTex,
-    gUnusedBossKeyItemName3JPNTex,
-    gUnusedBossKeyItemName4JPNTex,
-    gMinuetOfForestItemNameENGTex,
-    gBoleroOfFireItemNameENGTex,
-    gSerenadeOfWaterItemNameENGTex,
-    gRequiemOfSpiritItemNameENGTex,
-    gNocturneOfShadowItemNameENGTex,
-    gPreludeOfLightItemNameENGTex,
-    gZeldasLullabyItemNameENGTex,
-    gEponasSongItemNameENGTex,
-    gSariasSongItemNameENGTex,
-    gSunsSongItemNameENGTex,
-    gSongOfTimeItemNameENGTex,
-    gSongOfStormsItemNameENGTex,
-    gForestMedallionItemNameENGTex,
-    gFireMedallionItemNameENGTex,
-    gWaterMedallionItemNameENGTex,
-    gSpiritMedallionItemNameENGTex,
-    gShadowMedallionItemNameENGTex,
-    gLightMedallionItemNameENGTex,
-    gKokiriEmeraldItemNameENGTex,
-    gGoronsRubyItemNameENGTex,
-    gZorasSapphireItemNameENGTex,
-    gStoneofAgonyItemNameENGTex,
-    gGerudosCardItemNameENGTex,
-    gGoldSkulltulaItemNameENGTex,
-    gPieceOfHeartItemNameENGTex,
-    gUnusedPieceOfHeartItemName1JPNTex,
-    gUnusedBigKeyItemNameENGTex,
-    gCompassItemNameENGTex,
-    gDungeonMapItemNameENGTex,
-    gUnusedBossKeyItemName5JPNTex,
-    gUnusedBossKeyItemName6JPNTex,
-    gUnusedBossKeyItemName7JPNTex,
-    gBiggoronsSwordItemNameENGTex,
+    gDekuStickItemNameENGTex, gDekuNutItemNameENGTex, gBombItemNameENGTex, gFairyBowItemNameENGTex,
+    gFireArrowItemNameENGTex, gDinsFireItemNameENGTex, gFairySlingshotItemNameENGTex, gFairyOcarinaItemNameENGTex,
+    gOcarinaOfTimeItemNameENGTex, gBombchuItemNameENGTex, gHookshotItemNameENGTex, gLongshotItemNameENGTex,
+    gIceArrowItemNameENGTex, gFaroresWindItemNameENGTex, gBoomerangItemNameENGTex, gLensItemNameENGTex,
+    gMagicBeansItemNameENGTex, gMegatonHammerItemNameENGTex, gLightArrowItemNameENGTex, gNayrusLoveItemNameENGTex,
+    gEmptyBottleItemNameENGTex, gRedPotionItemNameENGTex, gGreenPotionItemNameENGTex, gBluePotionItemNameENGTex,
+    gBottledFairyItemNameENGTex, gFishItemNameENGTex, gFullMilkItemNameENGTex, gRutosLetterItemNameENGTex,
+    gBlueFireItemNameENGTex, gBugItemNameENGTex, gBigPoeItemNameENGTex, gHalfMilkItemNameENGTex, gPoeItemNameENGTex,
+    gWeirdEggItemNameENGTex, gCuccoItemNameENGTex, gZeldasLetterItemNameENGTex, gKeatonMaskItemNameENGTex,
+    gSkullMaskItemNameENGTex, gSpookyMaskItemNameENGTex, gBunnyHoodItemNameENGTex, gGoronMaskItemNameENGTex,
+    gZoraMaskItemNameENGTex, gGerudoMaskItemNameENGTex, gMaskofTruthItemNameENGTex, gSOLDOUTItemNameENGTex,
+    gPocketEggItemNameENGTex, gPocketCuccoItemNameENGTex, gCojiroItemNameENGTex, gOddMushroomItemNameENGTex,
+    gOddPotionItemNameENGTex, gPoachersSawItemNameENGTex, gBrokenGoronsSwordItemNameENGTex, gPrescriptionItemNameENGTex,
+    gEyeBallFrogItemNameENGTex, gEyeDropsItemNameENGTex, gClaimCheckItemNameENGTex, gUnusedWindMedallionItemName1JPNTex,
+    gUnusedFireMedallionItemName1JPNTex, gUnusedIceMedallionItemName1JPNTex, gKokiriSwordItemNameENGTex,
+    gMasterSwordItemNameENGTex, gGiantsKnifeItemNameENGTex, gDekuShieldItemNameENGTex, gHylianShieldItemNameENGTex,
+    gMirrorShieldItemNameENGTex, gKokiriTunicItemNameENGTex, gGoronTunicItemNameENGTex, gZoraTunicItemNameENGTex,
+    gKokiriBootsItemNameENGTex, gIronBootsItemNameENGTex, gHoverBootsItemNameENGTex, gBulletBag30ItemNameENGTex,
+    gBulletBag40ItemNameENGTex, gBulletBag50ItemNameENGTex, gQuiver30ItemNameENGTex, gQuiver40ItemNameENGTex,
+    gQuiver50ItemNameENGTex, gBombBag20ItemNameENGTex, gBombBag30ItemNameENGTex, gBombBag40ItemNameENGTex,
+    gGoronsBraceletItemNameENGTex, gSilverGauntletsItemNameENGTex, gGoldenGauntletsItemNameENGTex,
+    gSilverScaleItemNameENGTex, gGoldenScaleItemNameENGTex, gBrokenGiantsKnifeItemNameENGTex,
+    gUnusedBossKeyItemName1JPNTex, gUnusedBossKeyItemName2JPNTex, gUnusedBossKeyItemName3JPNTex,
+    gUnusedBossKeyItemName4JPNTex, gMinuetOfForestItemNameENGTex, gBoleroOfFireItemNameENGTex,
+    gSerenadeOfWaterItemNameENGTex, gRequiemOfSpiritItemNameENGTex, gNocturneOfShadowItemNameENGTex,
+    gPreludeOfLightItemNameENGTex, gZeldasLullabyItemNameENGTex, gEponasSongItemNameENGTex, gSariasSongItemNameENGTex,
+    gSunsSongItemNameENGTex, gSongOfTimeItemNameENGTex, gSongOfStormsItemNameENGTex, gForestMedallionItemNameENGTex,
+    gFireMedallionItemNameENGTex, gWaterMedallionItemNameENGTex, gSpiritMedallionItemNameENGTex,
+    gShadowMedallionItemNameENGTex, gLightMedallionItemNameENGTex, gKokiriEmeraldItemNameENGTex,
+    gGoronsRubyItemNameENGTex, gZorasSapphireItemNameENGTex, gStoneofAgonyItemNameENGTex, gGerudosCardItemNameENGTex,
+    gGoldSkulltulaItemNameENGTex, gPieceOfHeartItemNameENGTex, gUnusedPieceOfHeartItemName1JPNTex,
+    gUnusedBigKeyItemNameENGTex, gCompassItemNameENGTex, gDungeonMapItemNameENGTex, gUnusedBossKeyItemName5JPNTex,
+    gUnusedBossKeyItemName6JPNTex, gUnusedBossKeyItemName7JPNTex, gBiggoronsSwordItemNameENGTex,
+    // Custom items (>= 0x9C) are now handled by ExtInv_GetCustomItemNameTex()
+    // No placeholders needed - vanilla array ends here (123 items total)
     // LANGUAGE_GER
-    gDekuStickItemNameGERTex,
-    gDekuNutItemNameGERTex,
-    gBombItemNameItemNameGERTex,
-    gFairyBowItemNameGERTex,
-    gFireArrowItemNameUnk2GERTex,
-    gDinsFireItemNameGERTex,
-    gFairySlingshotItemNameGERTex,
-    gFairyOcarinaItemNameGERTex,
-    gOcarinaOfTimeItemNameGERTex,
-    gBombchuItemNameGERTex,
-    gHookshotItemNameGERTex,
-    gLongshotItemNameGERTex,
-    gIceArrowItemNameGERTex,
-    gFaroresWindItemNameGERTex,
-    gBoomerangItemNameGERTex,
-    gLensItemNameGERTex,
-    gMagicBeansItemNameGERTex,
-    gMegatonHammerItemNameGERTex,
-    gLightArrowItemNameGERTex,
-    gNayrusLoveItemNameGERTex,
-    gEmptyBottleItemNameGERTex,
-    gRedPotionItemNameGERTex,
-    gGreenPotionItemNameGERTex,
-    gBluePotionItemNameGERTex,
-    gBottledFairyItemNameGERTex,
-    gFishItemNameGERTex,
-    gFullMilkItemNameGERTex,
-    gRutosLetterItemNameGERTex,
-    gBlueFireItemNameGERTex,
-    gBugItemNameGERTex,
-    gBigPoeItemNameGERTex,
-    gHalfMilkItemNameGERTex,
-    gPoeItemNameGERTex,
-    gWeirdEggItemNameGERTex,
-    gCuccoItemNameGERTex,
-    gZeldasLetterItemNameGERTex,
-    gKeatonMaskItemNameGERTex,
-    gSkullMaskItemNameGERTex,
-    gSpookyMaskItemNameGERTex,
-    gBunnyHoodItemNameGERTex,
-    gGoronMaskItemNameGERTex,
-    gZoraMaskItemNameGERTex,
-    gGerudoMaskItemNameGERTex,
-    gMaskofTruthItemNameGERTex,
-    gSOLDOUTItemNameGERTex,
-    gPocketEggItemNameGERTex,
-    gPocketCuccoItemNameGERTex,
-    gCojiroItemNameGERTex,
-    gOddMushroomItemNameGERTex,
-    gOddPotionItemNameGERTex,
-    gPoachersSawItemNameGERTex,
-    gBrokenGoronsSwordItemNameGERTex,
-    gPrescriptionItemNameGERTex,
-    gEyeBallFrogItemNameGERTex,
-    gEyeDropsItemNameGERTex,
-    gClaimCheckItemNameGERTex,
-    gUnusedWindMedallionItemName2JPNTex,
-    gUnusedFireMedallionItemName2JPNTex,
-    gUnusedIceMedallionItemName2JPNTex,
-    gKokiriSwordItemNameGERTex,
-    gMasterSwordItemNameGERTex,
-    gGiantsKnifeItemNameGERTex,
-    gDekuShieldItemNameGERTex,
-    gHylianShieldItemNameGERTex,
-    gMirrorShieldItemNameGERTex,
-    gKokiriTunicItemNameGERTex,
-    gGoronTunicItemNameGERTex,
-    gZoraTunicItemNameGERTex,
-    gKokiriBootsItemNameGERTex,
-    gIronBootsItemNameGERTex,
-    gHoverBootsItemNameGERTex,
-    gBulletBag30ItemNameGERTex,
-    gBulletBag40ItemNameGERTex,
-    gBulletBag50ItemNameGERTex,
-    gQuiver30ItemNameGERTex,
-    gQuiver40ItemNameGERTex,
-    gQuiver50ItemNameGERTex,
-    gBombBag20ItemNameGERTex,
-    gBombBag30ItemNameGERTex,
-    gBombBag40ItemNameGERTex,
-    gGoronsBraceletItemNameGERTex,
-    gSilverGauntletsItemNameGERTex,
-    gGoldenGauntletsItemNameGERTex,
-    gSilverScaleItemNameGERTex,
-    gGoldenScaleItemNameGERTex,
-    gBrokenGiantsKnifeItemNameGERTex,
-    gUnusedBossKeyItemName8JPNTex,
-    gUnusedBossKeyItemName9JPNTex,
-    gUnusedBossKeyItemName10JPNTex,
-    gUnusedBossKeyItemName11JPNTex,
-    gMinuetOfForestItemNameGERTex,
-    gBoleroOfFireItemNameGERTex,
-    gSerenadeOfWaterItemNameGERTex,
-    gRequiemOfSpiritItemNameGERTex,
-    gNocturneOfShadowItemNameGERTex,
-    gPreludeOfLightItemNameGERTex,
-    gZeldasLullabyItemNameGERTex,
-    gEponasSongItemNameGERTex,
-    gSariasSongItemNameGERTex,
-    gSunsSongItemNameGERTex,
-    gSongOfTimeItemNameGERTex,
-    gSongOfStormsItemNameGERTex,
-    gForestMedallionItemNameGERTex,
-    gFireMedallionItemNameGERTex,
-    gWaterMedallionItemNameGERTex,
-    gSpiritMedallionItemNameGERTex,
-    gShadowMedallionItemNameGERTex,
-    gLightMedallionItemNameGERTex,
-    gKokiriEmeraldItemNameGERTex,
-    gGoronsRubyItemNameGERTex,
-    gZorasSapphireItemNameGERTex,
-    gStoneofAgonyItemNameGERTex,
-    gGerudosCardItemNameGERTex,
-    gGoldSkulltulaItemNameGERTex,
-    gHeartContainerItemNameGERTex,
-    gUnusedPieceOfHeartItemName2JPNTex,
-    gBigKeyItemNameGERTex,
-    gCompassItemNameGERTex,
-    gDungeonMapItemNameGERTex,
-    gUnusedBossKeyItemName12JPNTex,
-    gUnusedBossKeyItemName13JPNTex,
-    gUnusedBossKeyItemName14JPNTex,
-    gBiggoronsSwordItemNameGERTex,
+    gDekuStickItemNameGERTex, gDekuNutItemNameGERTex, gBombItemNameItemNameGERTex, gFairyBowItemNameGERTex,
+    gFireArrowItemNameUnk2GERTex, gDinsFireItemNameGERTex, gFairySlingshotItemNameGERTex, gFairyOcarinaItemNameGERTex,
+    gOcarinaOfTimeItemNameGERTex, gBombchuItemNameGERTex, gHookshotItemNameGERTex, gLongshotItemNameGERTex,
+    gIceArrowItemNameGERTex, gFaroresWindItemNameGERTex, gBoomerangItemNameGERTex, gLensItemNameGERTex,
+    gMagicBeansItemNameGERTex, gMegatonHammerItemNameGERTex, gLightArrowItemNameGERTex, gNayrusLoveItemNameGERTex,
+    gEmptyBottleItemNameGERTex, gRedPotionItemNameGERTex, gGreenPotionItemNameGERTex, gBluePotionItemNameGERTex,
+    gBottledFairyItemNameGERTex, gFishItemNameGERTex, gFullMilkItemNameGERTex, gRutosLetterItemNameGERTex,
+    gBlueFireItemNameGERTex, gBugItemNameGERTex, gBigPoeItemNameGERTex, gHalfMilkItemNameGERTex, gPoeItemNameGERTex,
+    gWeirdEggItemNameGERTex, gCuccoItemNameGERTex, gZeldasLetterItemNameGERTex, gKeatonMaskItemNameGERTex,
+    gSkullMaskItemNameGERTex, gSpookyMaskItemNameGERTex, gBunnyHoodItemNameGERTex, gGoronMaskItemNameGERTex,
+    gZoraMaskItemNameGERTex, gGerudoMaskItemNameGERTex, gMaskofTruthItemNameGERTex, gSOLDOUTItemNameGERTex,
+    gPocketEggItemNameGERTex, gPocketCuccoItemNameGERTex, gCojiroItemNameGERTex, gOddMushroomItemNameGERTex,
+    gOddPotionItemNameGERTex, gPoachersSawItemNameGERTex, gBrokenGoronsSwordItemNameGERTex, gPrescriptionItemNameGERTex,
+    gEyeBallFrogItemNameGERTex, gEyeDropsItemNameGERTex, gClaimCheckItemNameGERTex, gUnusedWindMedallionItemName2JPNTex,
+    gUnusedFireMedallionItemName2JPNTex, gUnusedIceMedallionItemName2JPNTex, gKokiriSwordItemNameGERTex,
+    gMasterSwordItemNameGERTex, gGiantsKnifeItemNameGERTex, gDekuShieldItemNameGERTex, gHylianShieldItemNameGERTex,
+    gMirrorShieldItemNameGERTex, gKokiriTunicItemNameGERTex, gGoronTunicItemNameGERTex, gZoraTunicItemNameGERTex,
+    gKokiriBootsItemNameGERTex, gIronBootsItemNameGERTex, gHoverBootsItemNameGERTex, gBulletBag30ItemNameGERTex,
+    gBulletBag40ItemNameGERTex, gBulletBag50ItemNameGERTex, gQuiver30ItemNameGERTex, gQuiver40ItemNameGERTex,
+    gQuiver50ItemNameGERTex, gBombBag20ItemNameGERTex, gBombBag30ItemNameGERTex, gBombBag40ItemNameGERTex,
+    gGoronsBraceletItemNameGERTex, gSilverGauntletsItemNameGERTex, gGoldenGauntletsItemNameGERTex,
+    gSilverScaleItemNameGERTex, gGoldenScaleItemNameGERTex, gBrokenGiantsKnifeItemNameGERTex,
+    gUnusedBossKeyItemName8JPNTex, gUnusedBossKeyItemName9JPNTex, gUnusedBossKeyItemName10JPNTex,
+    gUnusedBossKeyItemName11JPNTex, gMinuetOfForestItemNameGERTex, gBoleroOfFireItemNameGERTex,
+    gSerenadeOfWaterItemNameGERTex, gRequiemOfSpiritItemNameGERTex, gNocturneOfShadowItemNameGERTex,
+    gPreludeOfLightItemNameGERTex, gZeldasLullabyItemNameGERTex, gEponasSongItemNameGERTex, gSariasSongItemNameGERTex,
+    gSunsSongItemNameGERTex, gSongOfTimeItemNameGERTex, gSongOfStormsItemNameGERTex, gForestMedallionItemNameGERTex,
+    gFireMedallionItemNameGERTex, gWaterMedallionItemNameGERTex, gSpiritMedallionItemNameGERTex,
+    gShadowMedallionItemNameGERTex, gLightMedallionItemNameGERTex, gKokiriEmeraldItemNameGERTex,
+    gGoronsRubyItemNameGERTex, gZorasSapphireItemNameGERTex, gStoneofAgonyItemNameGERTex, gGerudosCardItemNameGERTex,
+    gGoldSkulltulaItemNameGERTex, gHeartContainerItemNameGERTex, gUnusedPieceOfHeartItemName2JPNTex,
+    gBigKeyItemNameGERTex, gCompassItemNameGERTex, gDungeonMapItemNameGERTex, gUnusedBossKeyItemName12JPNTex,
+    gUnusedBossKeyItemName13JPNTex, gUnusedBossKeyItemName14JPNTex, gBiggoronsSwordItemNameGERTex,
+    // Custom items (>= 0x9C) handled by ExtInv_GetCustomItemNameTex()
     // LANGUAGE_FRA
-    gDekuStickItemNameFRATex,
-    gDekuNutItemNameFRATex,
-    gBombItemNameFRATex,
-    gFairyBowItemNameFRATex,
-    gFireArrowItemNameFRATex,
-    gDinsFireItemNameFRATex,
-    gFairySlingshotItemNameFRATex,
-    gFairyOcarinaItemNameFRATex,
-    gOcarinaOfTimeItemNameFRATex,
-    gBombchuItemNameFRATex,
-    gHookshotItemNameFRATex,
-    gLongshotItemNameFRATex,
-    gIceArrowItemNameFRATex,
-    gFaroresWindItemNameFRATex,
-    gBoomerangItemNameFRATex,
-    gLensItemNameFRATex,
-    gMagicBeansItemNameFRATex,
-    gMegatonHammerItemNameFRATex,
-    gLightArrowItemNameFRATex,
-    gNayrusLoveItemNameFRATex,
-    gEmptyBottleItemNameFRATex,
-    gRedPotionItemNameFRATex,
-    gGreenPotionItemNameFRATex,
-    gBluePotionItemNameFRATex,
-    gBottledFairyItemNameFRATex,
-    gFishItemNameFRATex,
-    gFullMilkItemNameFRATex,
-    gRutosLetterItemNameFRATex,
-    gBlueFireItemNameFRATex,
-    gBugItemNameFRATex,
-    gBigPoeItemNameFRATex,
-    gHalfMilkItemNameFRATex,
-    gPoeItemNameFRATex,
-    gWeirdEggItemNameFRATex,
-    gCuccoItemNameFRATex,
-    gZeldasLetterItemNameFRATex,
-    gKeatonMaskItemNameFRATex,
-    gSkullMaskItemNameFRATex,
-    gSpookyMaskItemNameFRATex,
-    gBunnyHoodItemNameFRATex,
-    gGoronMaskItemNameFRATex,
-    gZoraMaskItemNameFRATex,
-    gGerudoMaskItemNameFRATex,
-    gMaskofTruthItemNameFRATex,
-    gSOLDOUTItemNameFRATex,
-    gPocketEggItemNameFRATex,
-    gPocketCuccoItemNameFRATex,
-    gCojiroItemNameFRATex,
-    gOddMushroomItemNameFRATex,
-    gOddPotionItemNameFRATex,
-    gPoachersSawItemNameFRATex,
-    gBrokenGoronsSwordItemNameFRATex,
-    gPrescriptionItemNameFRATex,
-    gEyeBallFrogItemNameFRATex,
-    gEyeDropsItemNameFRATex,
-    gClaimCheckItemNameFRATex,
-    gUnusedWindMedallionItemName3JPNTex,
-    gUnusedFireMedallionItemName3JPNTex,
-    gUnusedIceMedallionItemName3JPNTex,
-    gKokiriSwordItemNameFRATex,
-    gMasterSwordItemNameFRATex,
-    gGiantsKnifeItemNameFRATex,
-    gDekuShieldItemNameFRATex,
-    gHylianShieldItemNameFRATex,
-    gMirrorShieldItemNameFRATex,
-    gKokiriTunicItemNameFRATex,
-    gGoronTunicItemNameFRATex,
-    gZoraTunicItemNameFRATex,
-    gKokiriBootsItemNameFRATex,
-    gIronBootsItemNameFRATex,
-    gHoverBootsItemNameFRATex,
-    gBulletBag30ItemNameFRATex,
-    gBulletBag40ItemNameFRATex,
-    gBulletBag50ItemNameFRATex,
-    gQuiver30ItemNameFRATex,
-    gQuiver40ItemNameFRATex,
-    gQuiver50ItemNameFRATex,
-    gBombBag20ItemNameFRATex,
-    gBombBag30ItemNameFRATex,
-    gBombBag40ItemNameFRATex,
-    gGoronsBraceletItemNameFRATex,
-    gSilverGauntletsItemNameFRATex,
-    gGoldenGauntletsItemNameFRATex,
-    gSilverScaleItemNameFRATex,
-    gGoldenScaleItemNameFRATex,
-    gBrokenGiantsKnifeItemNameFRATex,
-    gUnusedBossKeyItemName15JPNTex,
-    gUnusedBossKeyItemName16JPNTex,
-    gUnusedBossKeyItemName17JPNTex,
-    gUnusedBossKeyItemName18JPNTex,
-    gMinuetOfForestItemNameFRATex,
-    gBoleroOfFireItemNameFRATex,
-    gSerenadeOfWaterItemNameFRATex,
-    gRequiemOfSpiritItemNameFRATex,
-    gNocturneOfShadowItemNameFRATex,
-    gPreludeOfLightItemNameFRATex,
-    gZeldasLullabyItemNameFRATex,
-    gEponasSongItemNameFRATex,
-    gSariasSongItemNameFRATex,
-    gSunsSongItemNameFRATex,
-    gSongOfTimeItemNameFRATex,
-    gSongOfStormsItemNameFRATex,
-    gForestMedallionItemNameFRATex,
-    gFireMedallionItemNameFRATex,
-    gWaterMedallionItemNameFRATex,
-    gSpiritMedallionItemNameFRATex,
-    gShadowMedallionItemNameFRATex,
-    gLightMedallionItemNameFRATex,
-    gKokiriEmeraldItemNameFRATex,
-    gGoronsRubyItemNameFRATex,
-    gZorasSapphireItemNameFRATex,
-    gStoneofAgonyItemNameFRATex,
-    gGerudosCardItemNameFRATex,
-    gGoldSkulltulaItemNameFRATex,
-    gHeartContainerItemNameFRATex,
-    gUnusedPieceOfHeartItemName3JPNTex,
-    gBossKeyItemNameFRATex,
-    gCompassItemNameFRATex,
-    gDungeonMapItemNameFRATex,
-    gUnusedBossKeyItemName19JPNTex,
-    gUnusedBossKeyItemName20JPNTex,
-    gUnusedBossKeyItemName21JPNTex,
-    gBiggoronsSwordItemNameFRATex,
+    gDekuStickItemNameFRATex, gDekuNutItemNameFRATex, gBombItemNameFRATex, gFairyBowItemNameFRATex,
+    gFireArrowItemNameFRATex, gDinsFireItemNameFRATex, gFairySlingshotItemNameFRATex, gFairyOcarinaItemNameFRATex,
+    gOcarinaOfTimeItemNameFRATex, gBombchuItemNameFRATex, gHookshotItemNameFRATex, gLongshotItemNameFRATex,
+    gIceArrowItemNameFRATex, gFaroresWindItemNameFRATex, gBoomerangItemNameFRATex, gLensItemNameFRATex,
+    gMagicBeansItemNameFRATex, gMegatonHammerItemNameFRATex, gLightArrowItemNameFRATex, gNayrusLoveItemNameFRATex,
+    gEmptyBottleItemNameFRATex, gRedPotionItemNameFRATex, gGreenPotionItemNameFRATex, gBluePotionItemNameFRATex,
+    gBottledFairyItemNameFRATex, gFishItemNameFRATex, gFullMilkItemNameFRATex, gRutosLetterItemNameFRATex,
+    gBlueFireItemNameFRATex, gBugItemNameFRATex, gBigPoeItemNameFRATex, gHalfMilkItemNameFRATex, gPoeItemNameFRATex,
+    gWeirdEggItemNameFRATex, gCuccoItemNameFRATex, gZeldasLetterItemNameFRATex, gKeatonMaskItemNameFRATex,
+    gSkullMaskItemNameFRATex, gSpookyMaskItemNameFRATex, gBunnyHoodItemNameFRATex, gGoronMaskItemNameFRATex,
+    gZoraMaskItemNameFRATex, gGerudoMaskItemNameFRATex, gMaskofTruthItemNameFRATex, gSOLDOUTItemNameFRATex,
+    gPocketEggItemNameFRATex, gPocketCuccoItemNameFRATex, gCojiroItemNameFRATex, gOddMushroomItemNameFRATex,
+    gOddPotionItemNameFRATex, gPoachersSawItemNameFRATex, gBrokenGoronsSwordItemNameFRATex, gPrescriptionItemNameFRATex,
+    gEyeBallFrogItemNameFRATex, gEyeDropsItemNameFRATex, gClaimCheckItemNameFRATex, gUnusedWindMedallionItemName3JPNTex,
+    gUnusedFireMedallionItemName3JPNTex, gUnusedIceMedallionItemName3JPNTex, gKokiriSwordItemNameFRATex,
+    gMasterSwordItemNameFRATex, gGiantsKnifeItemNameFRATex, gDekuShieldItemNameFRATex, gHylianShieldItemNameFRATex,
+    gMirrorShieldItemNameFRATex, gKokiriTunicItemNameFRATex, gGoronTunicItemNameFRATex, gZoraTunicItemNameFRATex,
+    gKokiriBootsItemNameFRATex, gIronBootsItemNameFRATex, gHoverBootsItemNameFRATex, gBulletBag30ItemNameFRATex,
+    gBulletBag40ItemNameFRATex, gBulletBag50ItemNameFRATex, gQuiver30ItemNameFRATex, gQuiver40ItemNameFRATex,
+    gQuiver50ItemNameFRATex, gBombBag20ItemNameFRATex, gBombBag30ItemNameFRATex, gBombBag40ItemNameFRATex,
+    gGoronsBraceletItemNameFRATex, gSilverGauntletsItemNameFRATex, gGoldenGauntletsItemNameFRATex,
+    gSilverScaleItemNameFRATex, gGoldenScaleItemNameFRATex, gBrokenGiantsKnifeItemNameFRATex,
+    gUnusedBossKeyItemName15JPNTex, gUnusedBossKeyItemName16JPNTex, gUnusedBossKeyItemName17JPNTex,
+    gUnusedBossKeyItemName18JPNTex, gMinuetOfForestItemNameFRATex, gBoleroOfFireItemNameFRATex,
+    gSerenadeOfWaterItemNameFRATex, gRequiemOfSpiritItemNameFRATex, gNocturneOfShadowItemNameFRATex,
+    gPreludeOfLightItemNameFRATex, gZeldasLullabyItemNameFRATex, gEponasSongItemNameFRATex, gSariasSongItemNameFRATex,
+    gSunsSongItemNameFRATex, gSongOfTimeItemNameFRATex, gSongOfStormsItemNameFRATex, gForestMedallionItemNameFRATex,
+    gFireMedallionItemNameFRATex, gWaterMedallionItemNameFRATex, gSpiritMedallionItemNameFRATex,
+    gShadowMedallionItemNameFRATex, gLightMedallionItemNameFRATex, gKokiriEmeraldItemNameFRATex,
+    gGoronsRubyItemNameFRATex, gZorasSapphireItemNameFRATex, gStoneofAgonyItemNameFRATex, gGerudosCardItemNameFRATex,
+    gGoldSkulltulaItemNameFRATex, gHeartContainerItemNameFRATex, gUnusedPieceOfHeartItemName3JPNTex,
+    gBossKeyItemNameFRATex, gCompassItemNameFRATex, gDungeonMapItemNameFRATex, gUnusedBossKeyItemName19JPNTex,
+    gUnusedBossKeyItemName20JPNTex, gUnusedBossKeyItemName21JPNTex, gBiggoronsSwordItemNameFRATex,
+    // Custom items (>= 0x9C) handled by ExtInv_GetCustomItemNameTex()
     // LANGUAGE_JPN
-    gDekuStickItemNameJPNTex,
-    gDekuNutItemNameJPNTex,
-    gBombItemNameJPNTex,
-    gFairyBowItemNameJPNTex,
-    gFireArrowItemNameJPNTex,
-    gDinsFireItemNameJPNTex,
-    gFairySlingshotItemNameJPNTex,
-    gFairyOcarinaItemNameJPNTex,
-    gOcarinaOfTimeItemNameJPNTex,
-    gBombchuItemNameJPNTex,
-    gHookshotItemNameJPNTex,
-    gLongshotItemNameJPNTex,
-    gIceArrowItemNameJPNTex,
-    gFaroresWindItemNameJPNTex,
-    gBoomerangItemNameJPNTex,
-    gLensItemNameJPNTex,
-    gMagicBeansItemNameJPNTex,
-    gMegatonHammerItemNameJPNTex,
-    gLightArrowItemNameJPNTex,
-    gNayrusLoveItemNameJPNTex,
-    gEmptyBottleItemNameJPNTex,
-    gRedPotionItemNameJPNTex,
-    gGreenPotionItemNameJPNTex,
-    gBluePotionItemNameJPNTex,
-    gBottledFairyItemNameJPNTex,
-    gFishItemNameJPNTex,
-    gFullMilkItemNameJPNTex,
-    gRutosLetterItemNameJPNTex,
-    gBlueFireItemNameJPNTex,
-    gBugItemNameJPNTex,
-    gBigPoeItemNameJPNTex,
-    gHalfMilkItemNameJPNTex,
-    gPoeItemNameJPNTex,
-    gWeirdEggItemNameJPNTex,
-    gCuccoItemNameJPNTex,
-    gZeldasLetterItemNameJPNTex,
-    gKeatonMaskItemNameJPNTex,
-    gSkullMaskItemNameJPNTex,
-    gSpookyMaskItemNameJPNTex,
-    gBunnyHoodItemNameJPNTex,
-    gGoronMaskItemNameJPNTex,
-    gZoraMaskItemNameJPNTex,
-    gGerudoMaskItemNameJPNTex,
-    gMaskofTruthItemNameJPNTex,
-    gSOLDOUTItemNameJPNTex,
-    gPocketEggItemNameJPNTex,
-    gPocketCuccoItemNameJPNTex,
-    gCojiroItemNameJPNTex,
-    gOddMushroomItemNameJPNTex,
-    gOddPotionItemNameJPNTex,
-    gPoachersSawItemNameJPNTex,
-    gBrokenGoronsSwordItemNameJPNTex,
-    gPrescriptionItemNameJPNTex,
-    gEyeBallFrogItemNameJPNTex,
-    gEyeDropsItemNameJPNTex,
-    gClaimCheckItemNameJPNTex,
-    gUnusedWindMedallionItemName1JPNTex,
-    gUnusedFireMedallionItemName1JPNTex,
-    gUnusedIceMedallionItemName1JPNTex,
-    gKokiriSwordItemNameJPNTex,
-    gMasterSwordItemNameJPNTex,
-    gGiantsKnifeItemNameJPNTex,
-    gDekuShieldItemNameJPNTex,
-    gHylianShieldItemNameJPNTex,
-    gMirrorShieldItemNameJPNTex,
-    gKokiriTunicItemNameJPNTex,
-    gGoronTunicItemNameJPNTex,
-    gZoraTunicItemNameJPNTex,
-    gKokiriBootsItemNameJPNTex,
-    gIronBootsItemNameJPNTex,
-    gHoverBootsItemNameJPNTex,
-    gBulletBag30ItemNameJPNTex,
-    gBulletBag40ItemNameJPNTex,
-    gBulletBag50ItemNameJPNTex,
-    gQuiver30ItemNameJPNTex,
-    gQuiver40ItemNameJPNTex,
-    gQuiver50ItemNameJPNTex,
-    gBombBag20ItemNameJPNTex,
-    gBombBag30ItemNameJPNTex,
-    gBombBag40ItemNameJPNTex,
-    gGoronsBraceletItemNameJPNTex,
-    gSilverGauntletsItemNameJPNTex,
-    gGoldenGauntletsItemNameJPNTex,
-    gSilverScaleItemNameJPNTex,
-    gGoldenScaleItemNameJPNTex,
-    gBrokenGiantsKnifeItemNameJPNTex,
-    gUnusedBossKeyItemName1JPNTex,
-    gUnusedBossKeyItemName2JPNTex,
-    gUnusedBossKeyItemName3JPNTex,
-    gUnusedBossKeyItemName4JPNTex,
-    gMinuetOfForestItemNameJPNTex,
-    gBoleroOfFireItemNameJPNTex,
-    gSerenadeOfWaterItemNameJPNTex,
-    gRequiemOfSpiritItemNameJPNTex,
-    gNocturneOfShadowItemNameJPNTex,
-    gPreludeOfLightItemNameJPNTex,
-    gZeldasLullabyItemNameJPNTex,
-    gEponasSongItemNameJPNTex,
-    gSariasSongItemNameJPNTex,
-    gSunsSongItemNameJPNTex,
-    gSongOfTimeItemNameJPNTex,
-    gSongOfStormsItemNameJPNTex,
-    gForestMedallionItemNameJPNTex,
-    gFireMedallionItemNameJPNTex,
-    gWaterMedallionItemNameJPNTex,
-    gSpiritMedallionItemNameJPNTex,
-    gShadowMedallionItemNameJPNTex,
-    gLightMedallionItemNameJPNTex,
-    gKokiriEmeraldItemNameJPNTex,
-    gGoronsRubyItemNameJPNTex,
-    gZorasSapphireItemNameJPNTex,
-    gStoneofAgonyItemNameJPNTex,
-    gGerudosCardItemNameJPNTex,
-    gGoldSkulltulaItemNameJPNTex,
-    gPieceOfHeartItemNameJPNTex,
-    gUnusedPieceOfHeartItemName1JPNTex,
-    gUnusedBigKeyItemNameJPNTex,
-    gCompassItemNameJPNTex,
-    gDungeonMapItemNameJPNTex,
-    gUnusedBossKeyItemName5JPNTex,
-    gUnusedBossKeyItemName6JPNTex,
-    gUnusedBossKeyItemName7JPNTex,
-    gBiggoronsSwordItemNameJPNTex,
+    gDekuStickItemNameJPNTex, gDekuNutItemNameJPNTex, gBombItemNameJPNTex, gFairyBowItemNameJPNTex,
+    gFireArrowItemNameJPNTex, gDinsFireItemNameJPNTex, gFairySlingshotItemNameJPNTex, gFairyOcarinaItemNameJPNTex,
+    gOcarinaOfTimeItemNameJPNTex, gBombchuItemNameJPNTex, gHookshotItemNameJPNTex, gLongshotItemNameJPNTex,
+    gIceArrowItemNameJPNTex, gFaroresWindItemNameJPNTex, gBoomerangItemNameJPNTex, gLensItemNameJPNTex,
+    gMagicBeansItemNameJPNTex, gMegatonHammerItemNameJPNTex, gLightArrowItemNameJPNTex, gNayrusLoveItemNameJPNTex,
+    gEmptyBottleItemNameJPNTex, gRedPotionItemNameJPNTex, gGreenPotionItemNameJPNTex, gBluePotionItemNameJPNTex,
+    gBottledFairyItemNameJPNTex, gFishItemNameJPNTex, gFullMilkItemNameJPNTex, gRutosLetterItemNameJPNTex,
+    gBlueFireItemNameJPNTex, gBugItemNameJPNTex, gBigPoeItemNameJPNTex, gHalfMilkItemNameJPNTex, gPoeItemNameJPNTex,
+    gWeirdEggItemNameJPNTex, gCuccoItemNameJPNTex, gZeldasLetterItemNameJPNTex, gKeatonMaskItemNameJPNTex,
+    gSkullMaskItemNameJPNTex, gSpookyMaskItemNameJPNTex, gBunnyHoodItemNameJPNTex, gGoronMaskItemNameJPNTex,
+    gZoraMaskItemNameJPNTex, gGerudoMaskItemNameJPNTex, gMaskofTruthItemNameJPNTex, gSOLDOUTItemNameJPNTex,
+    gPocketEggItemNameJPNTex, gPocketCuccoItemNameJPNTex, gCojiroItemNameJPNTex, gOddMushroomItemNameJPNTex,
+    gOddPotionItemNameJPNTex, gPoachersSawItemNameJPNTex, gBrokenGoronsSwordItemNameJPNTex, gPrescriptionItemNameJPNTex,
+    gEyeBallFrogItemNameJPNTex, gEyeDropsItemNameJPNTex, gClaimCheckItemNameJPNTex, gUnusedWindMedallionItemName1JPNTex,
+    gUnusedFireMedallionItemName1JPNTex, gUnusedIceMedallionItemName1JPNTex, gKokiriSwordItemNameJPNTex,
+    gMasterSwordItemNameJPNTex, gGiantsKnifeItemNameJPNTex, gDekuShieldItemNameJPNTex, gHylianShieldItemNameJPNTex,
+    gMirrorShieldItemNameJPNTex, gKokiriTunicItemNameJPNTex, gGoronTunicItemNameJPNTex, gZoraTunicItemNameJPNTex,
+    gKokiriBootsItemNameJPNTex, gIronBootsItemNameJPNTex, gHoverBootsItemNameJPNTex, gBulletBag30ItemNameJPNTex,
+    gBulletBag40ItemNameJPNTex, gBulletBag50ItemNameJPNTex, gQuiver30ItemNameJPNTex, gQuiver40ItemNameJPNTex,
+    gQuiver50ItemNameJPNTex, gBombBag20ItemNameJPNTex, gBombBag30ItemNameJPNTex, gBombBag40ItemNameJPNTex,
+    gGoronsBraceletItemNameJPNTex, gSilverGauntletsItemNameJPNTex, gGoldenGauntletsItemNameJPNTex,
+    gSilverScaleItemNameJPNTex, gGoldenScaleItemNameJPNTex, gBrokenGiantsKnifeItemNameJPNTex,
+    gUnusedBossKeyItemName1JPNTex, gUnusedBossKeyItemName2JPNTex, gUnusedBossKeyItemName3JPNTex,
+    gUnusedBossKeyItemName4JPNTex, gMinuetOfForestItemNameJPNTex, gBoleroOfFireItemNameJPNTex,
+    gSerenadeOfWaterItemNameJPNTex, gRequiemOfSpiritItemNameJPNTex, gNocturneOfShadowItemNameJPNTex,
+    gPreludeOfLightItemNameJPNTex, gZeldasLullabyItemNameJPNTex, gEponasSongItemNameJPNTex, gSariasSongItemNameJPNTex,
+    gSunsSongItemNameJPNTex, gSongOfTimeItemNameJPNTex, gSongOfStormsItemNameJPNTex, gForestMedallionItemNameJPNTex,
+    gFireMedallionItemNameJPNTex, gWaterMedallionItemNameJPNTex, gSpiritMedallionItemNameJPNTex,
+    gShadowMedallionItemNameJPNTex, gLightMedallionItemNameJPNTex, gKokiriEmeraldItemNameJPNTex,
+    gGoronsRubyItemNameJPNTex, gZorasSapphireItemNameJPNTex, gStoneofAgonyItemNameJPNTex, gGerudosCardItemNameJPNTex,
+    gGoldSkulltulaItemNameJPNTex, gPieceOfHeartItemNameJPNTex, gUnusedPieceOfHeartItemName1JPNTex,
+    gUnusedBigKeyItemNameJPNTex, gCompassItemNameJPNTex, gDungeonMapItemNameJPNTex, gUnusedBossKeyItemName5JPNTex,
+    gUnusedBossKeyItemName6JPNTex, gUnusedBossKeyItemName7JPNTex, gBiggoronsSwordItemNameJPNTex,
+    // Custom items (>= 0x9C) handled by ExtInv_GetCustomItemNameTex()
 };
 
 // SOH [NTSC] - Fit in JPN textures, resulting in changes to offsets when indexed
@@ -940,6 +590,8 @@ static u16 D_8082ABEC[] = {
     PAUSE_MAP, PAUSE_EQUIP, PAUSE_QUEST, PAUSE_ITEM, PAUSE_EQUIP, PAUSE_MAP, PAUSE_ITEM, PAUSE_QUEST,
 };
 
+// Vanilla slot age requirements only (24 entries)
+// Custom slots (24-47) are handled by ExtInv_GetSlotAgeReq() via gPage2ItemAgeReqs
 u8 gSlotAgeReqs[] = {
     AGE_REQ_CHILD, // SLOT_DEKU_STICK
     AGE_REQ_NONE,  // SLOT_DEKU_NUT
@@ -1082,6 +734,8 @@ u8 gItemAgeReqs[ITEM_NONE] = {
     AGE_REQ_NONE,  // ITEM_SCALE_SILVER
     AGE_REQ_NONE,  // ITEM_SCALE_GOLDEN
     AGE_REQ_ADULT, // ITEM_GIANTS_KNIFE
+    // Custom items (>= 0x9C) are now handled by ExtInv_GetItemAgeReq()
+    // No need for a gap or custom item entries here - CHECK_AGE_REQ_ITEM macro handles it
 };
 
 u8 gAreaGsFlags[] = {
@@ -1224,10 +878,10 @@ void KaleidoScope_SetDefaultCursor(PlayState* play) {
     switch (pauseCtx->pageIndex) {
         case PAUSE_ITEM:
             s = pauseCtx->cursorSlot[PAUSE_ITEM];
-            if (gSaveContext.inventory.items[s] == ITEM_NONE) {
+            if (gSaveContext.inventory.items[ExtInv_GetInventorySlot(s)] == ITEM_NONE) {
                 i = s + 1;
                 while (true) {
-                    if (gSaveContext.inventory.items[i] != ITEM_NONE) {
+                    if (gSaveContext.inventory.items[ExtInv_GetInventorySlot(i)] != ITEM_NONE) {
                         break;
                     }
                     i++;
@@ -1239,7 +893,7 @@ void KaleidoScope_SetDefaultCursor(PlayState* play) {
                         return;
                     }
                 }
-                pauseCtx->cursorItem[PAUSE_ITEM] = gSaveContext.inventory.items[i];
+                pauseCtx->cursorItem[PAUSE_ITEM] = gSaveContext.inventory.items[ExtInv_GetInventorySlot(i)];
                 pauseCtx->cursorSlot[PAUSE_ITEM] = i;
             }
             break;
@@ -2288,8 +1942,9 @@ void KaleidoScope_DrawInfoPanel(PlayState* play) {
                 (CVarGetInteger(CVAR_ENHANCEMENT("PauseAnyCursor"), 0) == PAUSE_ANY_CURSOR_RANDO_ONLY && IS_RANDO) ||
                 (CVarGetInteger(CVAR_ENHANCEMENT("PauseAnyCursor"), 0) == PAUSE_ANY_CURSOR_ALWAYS_ON);
             if (!pauseCtx->pageIndex &&
-                (!pauseAnyCursor || (gSaveContext.inventory.items[pauseCtx->cursorPoint[PAUSE_ITEM]] !=
-                                     ITEM_NONE))) { // pageIndex == PAUSE_ITEM
+                (!pauseAnyCursor ||
+                 (gSaveContext.inventory.items[ExtInv_GetInventorySlot(pauseCtx->cursorPoint[PAUSE_ITEM])] !=
+                  ITEM_NONE))) { // pageIndex == PAUSE_ITEM
                 pauseCtx->infoPanelVtx[16].v.ob[0] = pauseCtx->infoPanelVtx[18].v.ob[0] = WREG(49 + languageOffset);
 
                 pauseCtx->infoPanelVtx[17].v.ob[0] = pauseCtx->infoPanelVtx[19].v.ob[0] =
@@ -2409,7 +2064,8 @@ void KaleidoScope_DrawInfoPanel(PlayState* play) {
                     D_8082ADD8[gSaveContext.language] << 5;
 
                 if (!(CHECK_OWNED_EQUIP(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP] - 1)) &&
-                    (pauseCtx->pageIndex == PAUSE_EQUIP) && (pauseCtx->cursorX[PAUSE_EQUIP] != 0)) {
+                    (pauseCtx->pageIndex == PAUSE_EQUIP) && (pauseCtx->cursorX[PAUSE_EQUIP] != 0) &&
+                    !(ExtEquip_GetPage() == 1)) {
                     return;
                 }
 
@@ -2449,9 +2105,10 @@ void KaleidoScope_UpdateNamePanel(PlayState* play) {
 
         if (pauseAnyCursor &&
             ((pauseCtx->pageIndex == PAUSE_EQUIP && pauseCtx->cursorX[PAUSE_EQUIP] != 0 &&
-              !CHECK_OWNED_EQUIP(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP] - 1)) ||
+              !CHECK_OWNED_EQUIP(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP] - 1) &&
+              !(ExtEquip_GetPage() == 1)) ||
              (pauseCtx->pageIndex == PAUSE_ITEM &&
-              gSaveContext.inventory.items[pauseCtx->cursorPoint[PAUSE_ITEM]] == ITEM_NONE))) {
+              gSaveContext.inventory.items[ExtInv_GetInventorySlot(pauseCtx->cursorPoint[PAUSE_ITEM])] == ITEM_NONE))) {
             pauseCtx->namedItem = PAUSE_ITEM_NONE;
         }
 
@@ -2474,25 +2131,50 @@ void KaleidoScope_UpdateNamePanel(PlayState* play) {
                 const char* textureName = mapNameTextures[sp2A];
                 memcpy(pauseCtx->nameSegment, textureName, strlen(textureName) + 1);
             } else {
-                // #region SOH [NTSC] - There's a lot of OOB/Incorrect accesses that can occur so make sure sp2A selects
-                // something valid
-                sp2A %= 123;
-                // #endregion
-                osSyncPrintf("zoom_name=%d\n", pauseCtx->namedItem);
 
-                if (gSaveContext.language >= LANGUAGE_GER) {
-                    sp2A += 123;
-                }
-                if (gSaveContext.language >= LANGUAGE_FRA) {
-                    sp2A += 123;
-                }
-                if (gSaveContext.language >= LANGUAGE_JPN) {
-                    sp2A += 123;
-                }
+                const char* textureName;
 
-                osSyncPrintf("J_N=%d  point=%d\n", gSaveContext.language, sp2A);
+                // Save original item ID before any modulo/offset operations
+                u16 originalItemId = sp2A;
 
-                const char* textureName = iconNameTextures[sp2A];
+                // Custom items: use OTR name textures like vanilla
+                if (originalItemId >= ITEM_ROCS_FEATHER_SKIJER && originalItemId <= ITEM_POKEBALL) {
+                    textureName = (const char*)ExtInv_GetCustomItemNameTex(originalItemId, gSaveContext.language);
+                    if (textureName == NULL) {
+                        textureName = iconNameTextures[0];
+                    }
+                } else if (originalItemId >= 0x9C && originalItemId <= 0x9C) {
+                    // 0x9C placeholder
+                    textureName = iconNameTextures[0];
+                } else if (originalItemId >= ITEM_MM_MASK_POSTMAN && originalItemId <= ITEM_MM_MASK_FIERCE_DEITY) {
+                    textureName = (const char*)ExtInv_GetCustomItemNameTex(originalItemId, gSaveContext.language);
+                    if (textureName == NULL) {
+                        textureName = iconNameTextures[0];
+                    }
+                    // isCustomItem stays false: OTR path string handled like vanilla via strlen copy
+                } else if (originalItemId >= 0xE0 && originalItemId <= 0xEB) {
+                    // Extended equipment items: use name texture from ext_equip_names.c
+                    textureName = (const char*)ExtEquip_GetNameTex(originalItemId, gSaveContext.language);
+                    if (textureName == NULL) {
+                        textureName = iconNameTextures[0];
+                    }
+                } else {
+                    // Vanilla items: modulo 123 and add language offset
+                    sp2A %= 123;
+
+                    // Add language offset (123 entries per language)
+                    if (gSaveContext.language >= LANGUAGE_GER) {
+                        sp2A += 123;
+                    }
+                    if (gSaveContext.language >= LANGUAGE_FRA) {
+                        sp2A += 123;
+                    }
+                    if (gSaveContext.language >= LANGUAGE_JPN) {
+                        sp2A += 123;
+                    }
+
+                    textureName = iconNameTextures[sp2A];
+                }
 
                 if (!GameInteractor_Should(VB_DRAW_CUSTOM_ITEM_NAME, false, pauseCtx->namedItem)) {
                     memcpy(pauseCtx->nameSegment, textureName, strlen(textureName) + 1);
@@ -3141,9 +2823,13 @@ void KaleidoScope_InitVertices(PlayState* play, GraphicsContext* gfxCtx) {
     }
 
     for (phi_t3 = 1; phi_t3 < ARRAY_COUNT(gSaveContext.equips.buttonItems); phi_t3++, phi_t2 += 4) {
-        if (gSaveContext.equips.cButtonSlots[phi_t3 - 1] != ITEM_NONE &&
-            ((phi_t3 < 4) || CVarGetInteger(CVAR_ENHANCEMENT("DpadEquips"), 0))) {
-            phi_t4 = gSaveContext.equips.cButtonSlots[phi_t3 - 1] * 4;
+        u8 equippedSlot = gSaveContext.equips.cButtonSlots[phi_t3 - 1];
+        if (equippedSlot != ITEM_NONE &&
+            ((phi_t3 < 4) || CVarGetInteger(CVAR_ENHANCEMENT("DpadEquips"), 0)) &&
+            ExtInv_IsSlotOnCurrentPage(equippedSlot)) {
+            // Calculate screen position (visual slot 0-23)
+            u8 currentPageStart = ExtInv_GetCurrentPage() * 24;
+            phi_t4 = (equippedSlot - currentPageStart) * 4;
 
             pauseCtx->itemVtx[phi_t2 + 0].v.ob[0] = pauseCtx->itemVtx[phi_t2 + 2].v.ob[0] =
                 pauseCtx->itemVtx[phi_t4].v.ob[0] - 2;
@@ -4277,11 +3963,19 @@ void KaleidoScope_Update(PlayState* play) {
                         Interface_ChangeAlpha(50);
                         pauseCtx->unk_1EC = 0;
                         pauseCtx->state = 7;
-                    } else if (IS_RANDO && CHECK_BTN_ALL(input->press.button, BTN_CUP) &&
-                               pauseCtx->pageIndex == PAUSE_QUEST) {
-                        Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-                        pauseCtx->randoQuestMode ^= 1;
+                    } else if (CHECK_BTN_ALL(input->press.button, BTN_CUP) && pauseCtx->cursorSpecialPos == 0) {
+                        u16 descTextId =
+                            PauseItemDesc_GetTextId(pauseCtx->cursorItem[pauseCtx->pageIndex], pauseCtx->pageIndex);
+                        if (descTextId != 0) {
+                            Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                            Message_StartTextbox(play, descTextId, NULL);
+                            pauseCtx->unk_1E4 = 10;
+                        } else if (IS_RANDO && pauseCtx->pageIndex == PAUSE_QUEST) {
+                            Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                            pauseCtx->randoQuestMode ^= 1;
+                        }
                     }
                     break;
 
@@ -4387,6 +4081,16 @@ void KaleidoScope_Update(PlayState* play) {
                     break;
 
                 case 9:
+                    break;
+
+                case 10: // C-Up item description textbox active
+                    // Message_Update doesn't run during pause, so drive it manually
+                    Message_Update(play);
+                    if (CHECK_BTN_ALL(input->press.button, BTN_B) || CHECK_BTN_ALL(input->press.button, BTN_A) ||
+                        play->msgCtx.msgMode == MSGMODE_NONE) {
+                        Message_CloseTextbox(play);
+                        pauseCtx->unk_1E4 = 0;
+                    }
                     break;
 
                 default:

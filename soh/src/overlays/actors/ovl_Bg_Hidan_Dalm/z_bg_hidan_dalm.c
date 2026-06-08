@@ -127,10 +127,24 @@ void BgHidanDalm_Destroy(Actor* thisx, PlayState* play) {
 void BgHidanDalm_Wait(BgHidanDalm* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
+    // Also accept Goron punch/ground pound (DMG_HAMMER_SWING) from transformation masks.
+    // Original only checks meleeWeaponAnimation for hammer, but Goron attacks use
+    // DMG_HAMMER_SWING on their collider which is functionally equivalent.
+    // Iterate all 4 tris so a Goron punch landing on the -X face (elements 2/3)
+    // is recognised, not just the +X face (elements 0/1).
+    s32 isHammerHit = (player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_FORWARD ||
+                       player->meleeWeaponAnimation == PLAYER_MWA_HAMMER_SIDE);
+    if (!isHammerHit && (this->collider.base.acFlags & AC_HIT)) {
+        for (s32 i = 0; i < 4; i++) {
+            ColliderInfo* hitInfo = this->collider.elements[i].info.acHitInfo;
+            if (hitInfo != NULL && (hitInfo->toucher.dmgFlags & DMG_HAMMER_SWING)) {
+                isHammerHit = 1;
+                break;
+            }
+        }
+    }
     if (GameInteractor_Should(VB_HAMMER_TOTEM_BREAK,
-                              (this->collider.base.acFlags & AC_HIT) && !Player_InCsMode(play) &&
-                                  (player->meleeWeaponAnimation == 22 || player->meleeWeaponAnimation == 23),
-                              this)) {
+                              (this->collider.base.acFlags & AC_HIT) && !Player_InCsMode(play) && isHammerHit, this)) {
         this->collider.base.acFlags &= ~AC_HIT;
         if ((this->collider.elements[0].info.bumperFlags & BUMP_HIT) ||
             (this->collider.elements[1].info.bumperFlags & BUMP_HIT)) {

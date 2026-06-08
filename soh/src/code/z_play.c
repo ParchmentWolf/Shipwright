@@ -13,7 +13,11 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/SaveManager.h"
 #include "soh/framebuffer_effects.h"
-
+#include "mods/items/custom_items.h"
+#include "mods/items/helpers/minish_kaleido.h"
+#include "mods/items/helpers/postman_kaleido.h"
+#include "mods/items/logic/item_postman_hat.h"
+#include "mods/transformation_masks/mm_mask_wear.h"
 #include <libultraship/libultraship.h>
 
 #include <time.h>
@@ -1272,7 +1276,15 @@ void Play_Update(PlayState* play) {
 
             if ((play->pauseCtx.state != 0) || (play->pauseCtx.debugState != 0)) {
                 PLAY_LOG(3721);
-                KaleidoScopeCall_Update(play);
+                if (gCustomItemState.minishCapWarpMode) {
+                    MinishKaleido_Update(play);
+                } else if (gCustomItemState.postmanHatWarpMode) {
+                    PostmanKaleido_Update(play);
+                } else if (MmMaskWear_IsGreatFairyWarpActive()) {
+                    MmMaskWear_GreatFairyWarpUpdate(play);
+                } else {
+                    KaleidoScopeCall_Update(play);
+                }
             } else if (play->gameOverCtx.state != GAMEOVER_INACTIVE) {
                 PLAY_LOG(3727);
                 GameOver_Update(play);
@@ -1335,7 +1347,10 @@ skip:
 
 void Play_DrawOverlayElements(PlayState* play) {
     if ((play->pauseCtx.state != 0) || (play->pauseCtx.debugState != 0)) {
-        KaleidoScopeCall_Draw(play);
+        if (!gCustomItemState.minishCapWarpMode && !gCustomItemState.postmanHatWarpMode &&
+            !MmMaskWear_IsGreatFairyWarpActive()) {
+            KaleidoScopeCall_Draw(play);
+        }
     }
 
     if (gSaveContext.gameMode == GAMEMODE_NORMAL) {
@@ -1346,6 +1361,16 @@ void Play_DrawOverlayElements(PlayState* play) {
 
     if (play->gameOverCtx.state != GAMEOVER_INACTIVE) {
         GameOver_FadeInLights(play);
+    }
+
+    // Great Fairy Mask teleport menu overlay
+    MmMaskWear_DrawOverlay(play);
+
+    // Minish Cap warp overlay — drawn last on OVERLAY_DISP so it covers HUD
+    if (gCustomItemState.minishCapWarpMode) {
+        MinishKaleido_Draw(play);
+    } else if (gCustomItemState.postmanHatWarpMode) {
+        PostmanKaleido_Draw(play);
     }
 }
 

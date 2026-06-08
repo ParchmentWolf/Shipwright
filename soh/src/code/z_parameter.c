@@ -10,6 +10,7 @@
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/enhancementTypes.h"
 #include "soh/ShipUtils.h"
+#include "mods/extended_equipment.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -22,6 +23,9 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/gameplaystats.h"
 #include "soh/ObjectExtension/ActorMaximumHealth.h"
+#include "mods/extended_inventory.h"
+#include "mods/transformation_masks/transformation_masks.h"
+#include "expansions/sw97/sw97_config.h"
 
 #include "message_data_static.h"
 extern MessageTableEntry* sNesMessageEntryTablePtr;
@@ -956,8 +960,10 @@ void func_80083108(PlayState* play) {
                 gSaveContext.buttonStatus[0] = BTN_DISABLED;
 
                 for (i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
-                    if ((gSaveContext.equips.buttonItems[i] >= ITEM_SHIELD_DEKU) &&
-                        (gSaveContext.equips.buttonItems[i] <= ITEM_BOOTS_HOVER)) {
+                    if (((gSaveContext.equips.buttonItems[i] >= ITEM_SHIELD_DEKU) &&
+                         (gSaveContext.equips.buttonItems[i] <= ITEM_BOOTS_HOVER)) ||
+                        ((gSaveContext.equips.buttonItems[i] >= ITEM_EXT_SWORD_1) &&
+                         (gSaveContext.equips.buttonItems[i] <= ITEM_EXT_BOOTS_3))) {
                         // Equipment on c-buttons is always enabled
                         if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_DISABLED) {
                             sp28 = 1;
@@ -1119,8 +1125,10 @@ void func_80083108(PlayState* play) {
                 }
 
                 for (i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
-                    if ((gSaveContext.equips.buttonItems[i] >= ITEM_SHIELD_DEKU) &&
-                        (gSaveContext.equips.buttonItems[i] <= ITEM_BOOTS_HOVER)) {
+                    if (((gSaveContext.equips.buttonItems[i] >= ITEM_SHIELD_DEKU) &&
+                         (gSaveContext.equips.buttonItems[i] <= ITEM_BOOTS_HOVER)) ||
+                        ((gSaveContext.equips.buttonItems[i] >= ITEM_EXT_SWORD_1) &&
+                         (gSaveContext.equips.buttonItems[i] <= ITEM_EXT_BOOTS_3))) {
                         // Equipment on c-buttons is always enabled
                         if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_DISABLED) {
                             sp28 = 1;
@@ -1231,6 +1239,16 @@ void func_80083108(PlayState* play) {
                     }
                 }
 
+                // SM64 Mario mode: Farore's Wind / Din's / Nayru's all map
+                // to SM64 caps (sm64_mario_items.c). The vanilla per-scene
+                // FW restriction blocks the C-button in dungeons; force the
+                // restriction off so the cap can activate anywhere. Runs
+                // each tick so it tracks live CVar toggles, not just scene
+                // changes.
+                if (CVarGetInteger("gSm64Mario", 0)) {
+                    interfaceCtx->restrictions.farores = 0;
+                    interfaceCtx->restrictions.dinsNayrus = 0;
+                }
                 if (interfaceCtx->restrictions.farores != 0) {
                     for (i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
                         if (gSaveContext.equips.buttonItems[i] == ITEM_FARORES_WIND) {
@@ -1286,7 +1304,9 @@ void func_80083108(PlayState* play) {
                               (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) &&
                             !((gSaveContext.equips.buttonItems[i] >= ITEM_SHIELD_DEKU) && // Never disable equipment
                               (gSaveContext.equips.buttonItems[i] <=
-                               ITEM_BOOTS_HOVER)) && // (tunics/boots) on C-buttons
+                               ITEM_BOOTS_HOVER)) &&                                      // (tunics/boots) on C-buttons
+                            !((gSaveContext.equips.buttonItems[i] >= ITEM_EXT_SWORD_1) && // Never disable ext equipment
+                              (gSaveContext.equips.buttonItems[i] <= ITEM_EXT_BOOTS_3)) &&
                             !((gSaveContext.equips.buttonItems[i] >= ITEM_WEIRD_EGG) &&
                               (gSaveContext.equips.buttonItems[i] <= ITEM_CLAIM_CHECK))) {
                             if ((play->sceneNum != SCENE_TREASURE_BOX_SHOP) ||
@@ -1326,6 +1346,23 @@ void func_80083108(PlayState* play) {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // Masks usable everywhere; only Zora mask underwater. Runtime use-gating lives in TransformMasks_Update.
+    {
+        s32 isInWater = (player != NULL) && (player->stateFlags1 & PLAYER_STATE1_IN_WATER);
+        for (i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
+            s32 btnItem = gSaveContext.equips.buttonItems[i];
+            s32 isMask = ((btnItem >= ITEM_MASK_KEATON) && (btnItem <= ITEM_MASK_TRUTH)) ||
+                         ((btnItem >= ITEM_MM_MASK_POSTMAN) && (btnItem <= ITEM_MM_MASK_FIERCE_DEITY)) ||
+                         (btnItem == ITEM_POKEBALL);
+            s32 isZoraMask = (btnItem == ITEM_MASK_ZORA) || (btnItem == ITEM_MM_MASK_ZORA);
+            if (isMask && (!isInWater || isZoraMask) &&
+                gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_DISABLED) {
+                gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] = BTN_ENABLED;
+                sp28 = 1;
             }
         }
     }
@@ -1393,6 +1430,16 @@ void Interface_SetSceneRestrictions(PlayState* play) {
                 if (currentScene == SCENE_GERUDO_TRAINING_GROUND || currentScene == SCENE_INSIDE_GANONS_CASTLE) {
                     interfaceCtx->restrictions.farores = 0;
                 }
+            }
+            // SM64 Mario mode: Farore's Wind maps to the Wing Cap power-up
+            // (sm64_mario_items.c MarioItem_UseSpell). The OOT vanilla
+            // per-scene restrictions block FW in dungeons / Ganon's tower
+            // / etc. — bypass them so Mario can grab the wing cap anywhere
+            // that cap mechanic makes sense (i.e. always). Same for Din's
+            // / Nayru's, since those map to caps too.
+            if (CVarGetInteger("gSm64Mario", 0)) {
+                interfaceCtx->restrictions.farores = 0;
+                interfaceCtx->restrictions.dinsNayrus = 0;
             }
             return;
         }
@@ -1731,23 +1778,46 @@ void func_800849EC(PlayState* play) {
 
 void Interface_LoadItemIcon1(PlayState* play, u16 button) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
+    u8 item = gSaveContext.equips.buttonItems[button];
+
+    // Items beyond vanilla icon_item_static range use OTR paths via ExtInv_GetItemIcon
+    // in the draw path. Skip DMA to avoid writing garbage into the icon segment buffer.
+    if (item >= 0x80) {
+        return;
+    }
 
     osCreateMesgQueue(&interfaceCtx->loadQueue, &interfaceCtx->loadMsg, OS_MESG_BLOCK);
     DmaMgr_SendRequest2(&interfaceCtx->dmaRequest_160, interfaceCtx->iconItemSegment + button * 0x1000,
-                        (uintptr_t)_icon_item_staticSegmentRomStart +
-                            (gSaveContext.equips.buttonItems[button] * 0x1000),
-                        0x1000, 0, &interfaceCtx->loadQueue, OS_MESG_PTR(NULL), __FILE__, __LINE__);
+                        (uintptr_t)_icon_item_staticSegmentRomStart + (item * 0x1000), 0x1000, 0,
+                        &interfaceCtx->loadQueue, OS_MESG_PTR(NULL), __FILE__, __LINE__);
     osRecvMesg(&interfaceCtx->loadQueue, NULL, OS_MESG_BLOCK);
 }
 
 void Interface_LoadItemIcon2(PlayState* play, u16 button) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
+    u8 item = gSaveContext.equips.buttonItems[button];
+
+    // Extended equipment items: load icon from ext system (OTR path)
+    if (item >= ITEM_EXT_SWORD_1 && item <= ITEM_EXT_BOOTS_3) {
+        u16 offset = item - ITEM_EXT_SWORD_1;
+        s16 equipType = offset / 3;
+        u8 index = (offset % 3) + 1;
+        void* icon = ExtEquip_GetIcon(equipType, index);
+        if (icon != NULL) {
+            // icon is an OTR path string — the HUD renderer will resolve it
+            interfaceCtx->iconItemSegment[button * 0x1000] = 0; // Clear (OTR handles it)
+        }
+        return;
+    }
+
+    if (item >= 0x80) {
+        return;
+    }
 
     osCreateMesgQueue(&interfaceCtx->loadQueue, &interfaceCtx->loadMsg, OS_MESG_BLOCK);
     DmaMgr_SendRequest2(&interfaceCtx->dmaRequest_180, interfaceCtx->iconItemSegment + button * 0x1000,
-                        (uintptr_t)_icon_item_staticSegmentRomStart +
-                            (gSaveContext.equips.buttonItems[button] * 0x1000),
-                        0x1000, 0, &interfaceCtx->loadQueue, OS_MESG_PTR(NULL), __FILE__, __LINE__);
+                        (uintptr_t)_icon_item_staticSegmentRomStart + (item * 0x1000), 0x1000, 0,
+                        &interfaceCtx->loadQueue, OS_MESG_PTR(NULL), __FILE__, __LINE__);
     osRecvMesg(&interfaceCtx->loadQueue, NULL, OS_MESG_BLOCK);
 }
 
@@ -2379,13 +2449,17 @@ u8 Item_Give(PlayState* play, u8 item) {
                 return Return_Item(item, MOD_NONE, ITEM_NONE);
             }
         }
-    } else if (((item >= ITEM_POTION_RED) && (item <= ITEM_POE)) || (item == ITEM_MILK)) {
+    } else if (((item >= ITEM_POTION_RED) && (item <= ITEM_POE)) || (item == ITEM_MILK) ||
+               (item == ITEM_CHATEAU_ROMANI)) {
         temp = SLOT(item);
 
         if ((item != ITEM_MILK_BOTTLE) && (item != ITEM_LETTER_RUTO)) {
             if (item == ITEM_MILK) {
                 item = ITEM_MILK_BOTTLE;
                 temp = SLOT(item);
+            }
+            if (item == ITEM_CHATEAU_ROMANI) {
+                temp = SLOT(ITEM_POTION_RED); // Bottle slots start here
             }
 
             bool bottleFound = false;
@@ -2594,13 +2668,17 @@ u8 Item_CheckObtainability(u8 item) {
         return ITEM_NONE;
     } else if (item == ITEM_BOTTLE) {
         return ITEM_NONE;
-    } else if (((item >= ITEM_POTION_RED) && (item <= ITEM_POE)) || (item == ITEM_MILK)) {
+    } else if (((item >= ITEM_POTION_RED) && (item <= ITEM_POE)) || (item == ITEM_MILK) ||
+               (item == ITEM_CHATEAU_ROMANI)) {
         temp = SLOT(item);
 
         if ((item != ITEM_MILK_BOTTLE) && (item != ITEM_LETTER_RUTO)) {
             if (item == ITEM_MILK) {
                 item = ITEM_MILK_BOTTLE;
                 temp = SLOT(item);
+            }
+            if (item == ITEM_CHATEAU_ROMANI) {
+                temp = SLOT(ITEM_POTION_RED); // Bottle slots start here
             }
 
             for (i = 0; i < 4; i++) {
@@ -2710,6 +2788,13 @@ void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 button) {
     if ((gSaveContext.inventory.items[gSaveContext.equips.cButtonSlots[button - 1]] == ITEM_MILK_BOTTLE) &&
         (item == ITEM_BOTTLE)) {
         item = ITEM_MILK_HALF;
+    }
+
+    // Chateau Romani: activate infinite magic when consumed
+    if ((gSaveContext.inventory.items[gSaveContext.equips.cButtonSlots[button - 1]] == ITEM_CHATEAU_ROMANI) &&
+        (item == ITEM_BOTTLE)) {
+        extern void MmMaskWear_ActivateChateauRomani(void);
+        MmMaskWear_ActivateChateauRomani();
     }
 
     if (GameInteractor_Should(VB_UPDATE_BOTTLE_ITEM, true, button, item)) {
@@ -2877,9 +2962,22 @@ void Interface_LoadActionLabelB(PlayState* play, u16 action) {
     interfaceCtx->unk_1FA = 1;
 }
 
+// Direct pre-damage hook for Spirit Breastplate. Defined in
+// equip_breastplate.c (unity-built into z_player.o via extended_equipment.c).
+// Called directly to avoid the GameInteractor registration path so we don't
+// depend on a separate .cpp registration file being in the build.
+extern void Breastplate_OnHealthChangeBefore(int16_t* amount);
+
 s32 Health_ChangeBy(PlayState* play, s16 healthChange) {
     u16 heartCount;
     u16 healthLevel;
+
+    // Pre-damage hook: lets the Spirit Breastplate intercept damage and
+    // mutate or zero it out before the engine applies it.
+    Breastplate_OnHealthChangeBefore(&healthChange);
+    if (healthChange == 0) {
+        return 1;
+    }
 
     // "＊＊＊＊＊ Fluctuation=%d (now=%d, max=%d) ＊＊＊"
     osSyncPrintf("＊＊＊＊＊  増減=%d (now=%d, max=%d)  ＊＊＊", healthChange, gSaveContext.health,
@@ -4650,13 +4748,61 @@ void Interface_DrawItemIconTexture(PlayState* play, void* texture, s16 button) {
         ItemIconPos[3][1] = ItemIconPos_ori[3][1];
     }
 
-    gDPLoadTextureBlock(OVERLAY_DISP++, texture, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
-                        G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    // Quest items (songs, medallions, stones, etc.) use 24x24 textures from icon_item_24_static.
+    // Regular items use 32x32 from icon_item_static. Detect and load with correct dimensions.
+    u8 btnItem = gSaveContext.equips.buttonItems[button];
+    s32 isSmallIcon = (btnItem >= ITEM_SONG_MINUET && btnItem <= ITEM_SKULL_TOKEN) ||
+                      (btnItem >= ITEM_SW97_ARROW_FIRE && btnItem <= ITEM_SW97_ARROW_WIND);
 
-    gSPWideTextureRectangle(OVERLAY_DISP++, ItemIconPos[button][0] << 2, ItemIconPos[button][1] << 2,
-                            (ItemIconPos[button][0] + gItemIconWidth[button]) << 2,
-                            (ItemIconPos[button][1] + gItemIconWidth[button]) << 2, G_TX_RENDERTILE, 0, 0,
-                            gItemIconDD[button] << 1, gItemIconDD[button] << 1);
+    // Composite icon for elemental weapon mode: medallion semi-alpha + weapon overlay (bow for adult, slingshot for
+    // child)
+    s32 isElementalWeapon =
+        SW97_MEDALLIONS_ENABLED() && (btnItem >= ITEM_SW97_ARROW_FIRE && btnItem <= ITEM_SW97_ARROW_WIND);
+
+    if (isElementalWeapon) {
+        s16 iconW = gItemIconWidth[button];
+        s32 x0 = ItemIconPos[button][0];
+        s32 y0 = ItemIconPos[button][1];
+
+        // Layer 1: Medallion icon at 50% alpha (24x24 texture)
+        gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
+        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, 128);
+        gDPLoadTextureBlock(OVERLAY_DISP++, texture, G_IM_FMT_RGBA, G_IM_SIZ_32b, 24, 24, 0, G_TX_NOMIRROR | G_TX_WRAP,
+                            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+        s32 dd24 = 24 * 1024 / iconW;
+        gSPWideTextureRectangle(OVERLAY_DISP++, x0 << 2, y0 << 2, (x0 + iconW) << 2, (y0 + iconW) << 2, G_TX_RENDERTILE,
+                                0, 0, dd24, dd24);
+
+        // Layer 2: bow (adult) or slingshot (child) at full alpha, centered ~75% size
+        void* weaponTex = LINK_IS_ADULT ? ExtInv_GetItemIcon(ITEM_BOW) : ExtInv_GetItemIcon(ITEM_SLINGSHOT);
+        s16 smallW = (iconW * 3) / 4;
+        s16 offset = (iconW - smallW) / 2;
+        s32 dd32 = 32 * 1024 / smallW;
+        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, 255);
+        gDPLoadTextureBlock(OVERLAY_DISP++, weaponTex, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
+                            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
+                            G_TX_NOLOD);
+        gSPWideTextureRectangle(OVERLAY_DISP++, (x0 + offset) << 2, (y0 + offset) << 2, (x0 + offset + smallW) << 2,
+                                (y0 + offset + smallW) << 2, G_TX_RENDERTILE, 0, 0, dd32, dd32);
+
+        // Restore combine mode for subsequent draws
+        gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
+        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, 255);
+    } else if (isSmallIcon) {
+        gDPLoadTextureBlock(OVERLAY_DISP++, texture, G_IM_FMT_RGBA, G_IM_SIZ_32b, 24, 24, 0, G_TX_NOMIRROR | G_TX_WRAP,
+                            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+        s32 dd = 24 * 1024 / gItemIconWidth[button];
+        gSPWideTextureRectangle(OVERLAY_DISP++, ItemIconPos[button][0] << 2, ItemIconPos[button][1] << 2,
+                                (ItemIconPos[button][0] + gItemIconWidth[button]) << 2,
+                                (ItemIconPos[button][1] + gItemIconWidth[button]) << 2, G_TX_RENDERTILE, 0, 0, dd, dd);
+    } else {
+        gDPLoadTextureBlock(OVERLAY_DISP++, texture, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
+                            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+        gSPWideTextureRectangle(OVERLAY_DISP++, ItemIconPos[button][0] << 2, ItemIconPos[button][1] << 2,
+                                (ItemIconPos[button][0] + gItemIconWidth[button]) << 2,
+                                (ItemIconPos[button][1] + gItemIconWidth[button]) << 2, G_TX_RENDERTILE, 0, 0,
+                                gItemIconDD[button] << 1, gItemIconDD[button] << 1);
+    }
 
     CLOSE_DISPS(play->state.gfxCtx);
 }
@@ -5453,15 +5599,15 @@ void Interface_Draw(PlayState* play) {
         if (!(interfaceCtx->unk_1FA)) {
             // B Button Icon & Ammo Count
             if (gSaveContext.equips.buttonItems[0] != ITEM_NONE) {
-                if (fullUi) {
-                    Interface_DrawItemIconTexture(play, gItemIcons[gSaveContext.equips.buttonItems[0]], 0);
+                if (fullUi && !TransformMasks_IsTransformed()) {
+                    Interface_DrawItemIconTexture(play, ExtInv_GetItemIcon(gSaveContext.equips.buttonItems[0]), 0);
                 }
 
                 if ((player->stateFlags1 & PLAYER_STATE1_ON_HORSE) || (play->shootingGalleryStatus > 1) ||
                     ((play->sceneNum == SCENE_BOMBCHU_BOWLING_ALLEY) && Flags_GetSwitch(play, 0x38))) {
 
-                    if (!fullUi) {
-                        Interface_DrawItemIconTexture(play, gItemIcons[gSaveContext.equips.buttonItems[0]], 0);
+                    if (!fullUi && !TransformMasks_IsTransformed()) {
+                        Interface_DrawItemIconTexture(play, ExtInv_GetItemIcon(gSaveContext.equips.buttonItems[0]), 0);
                     }
 
                     gDPPipeSync(OVERLAY_DISP++);
@@ -5542,7 +5688,7 @@ void Interface_Draw(PlayState* play) {
         if (gSaveContext.equips.buttonItems[1] < 0xF0) {
             gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, interfaceCtx->cLeftAlpha);
             gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-            Interface_DrawItemIconTexture(play, gItemIcons[gSaveContext.equips.buttonItems[1]], 1);
+            Interface_DrawItemIconTexture(play, ExtInv_GetItemIcon(gSaveContext.equips.buttonItems[1]), 1);
             gDPPipeSync(OVERLAY_DISP++);
             gDPSetCombineLERP(OVERLAY_DISP++, PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0,
                               PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0);
@@ -5555,7 +5701,7 @@ void Interface_Draw(PlayState* play) {
         if (gSaveContext.equips.buttonItems[2] < 0xF0) {
             gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, interfaceCtx->cDownAlpha);
             gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-            Interface_DrawItemIconTexture(play, gItemIcons[gSaveContext.equips.buttonItems[2]], 2);
+            Interface_DrawItemIconTexture(play, ExtInv_GetItemIcon(gSaveContext.equips.buttonItems[2]), 2);
             gDPPipeSync(OVERLAY_DISP++);
             gDPSetCombineLERP(OVERLAY_DISP++, PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0,
                               PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0);
@@ -5568,7 +5714,7 @@ void Interface_Draw(PlayState* play) {
         if (gSaveContext.equips.buttonItems[3] < 0xF0) {
             gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, interfaceCtx->cRightAlpha);
             gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-            Interface_DrawItemIconTexture(play, gItemIcons[gSaveContext.equips.buttonItems[3]], 3);
+            Interface_DrawItemIconTexture(play, ExtInv_GetItemIcon(gSaveContext.equips.buttonItems[3]), 3);
             gDPPipeSync(OVERLAY_DISP++);
             gDPSetCombineLERP(OVERLAY_DISP++, PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0,
                               PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0);
@@ -5634,7 +5780,7 @@ void Interface_Draw(PlayState* play) {
             if (gSaveContext.equips.buttonItems[4] < 0xF0) {
                 gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, interfaceCtx->dpadUpAlpha);
                 gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-                Interface_DrawItemIconTexture(play, gItemIcons[gSaveContext.equips.buttonItems[4]], 4);
+                Interface_DrawItemIconTexture(play, ExtInv_GetItemIcon(gSaveContext.equips.buttonItems[4]), 4);
                 gDPPipeSync(OVERLAY_DISP++);
                 gDPSetCombineLERP(OVERLAY_DISP++, PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0,
                                   PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0);
@@ -5645,7 +5791,7 @@ void Interface_Draw(PlayState* play) {
             if (gSaveContext.equips.buttonItems[5] < 0xF0) {
                 gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, interfaceCtx->dpadDownAlpha);
                 gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-                Interface_DrawItemIconTexture(play, gItemIcons[gSaveContext.equips.buttonItems[5]], 5);
+                Interface_DrawItemIconTexture(play, ExtInv_GetItemIcon(gSaveContext.equips.buttonItems[5]), 5);
                 gDPPipeSync(OVERLAY_DISP++);
                 gDPSetCombineLERP(OVERLAY_DISP++, PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0,
                                   PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0);
@@ -5656,7 +5802,7 @@ void Interface_Draw(PlayState* play) {
             if (gSaveContext.equips.buttonItems[6] < 0xF0) {
                 gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, interfaceCtx->dpadLeftAlpha);
                 gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-                Interface_DrawItemIconTexture(play, gItemIcons[gSaveContext.equips.buttonItems[6]], 6);
+                Interface_DrawItemIconTexture(play, ExtInv_GetItemIcon(gSaveContext.equips.buttonItems[6]), 6);
                 gDPPipeSync(OVERLAY_DISP++);
                 gDPSetCombineLERP(OVERLAY_DISP++, PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0,
                                   PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0);
@@ -5667,7 +5813,7 @@ void Interface_Draw(PlayState* play) {
             if (gSaveContext.equips.buttonItems[7] < 0xF0) {
                 gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, interfaceCtx->dpadRightAlpha);
                 gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-                Interface_DrawItemIconTexture(play, gItemIcons[gSaveContext.equips.buttonItems[7]], 7);
+                Interface_DrawItemIconTexture(play, ExtInv_GetItemIcon(gSaveContext.equips.buttonItems[7]), 7);
                 gDPPipeSync(OVERLAY_DISP++);
                 gDPSetCombineLERP(OVERLAY_DISP++, PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0,
                                   PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0);
@@ -5774,9 +5920,9 @@ void Interface_Draw(PlayState* play) {
                 gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, pauseCtx->equipAnimAlpha);
                 gSPVertex(OVERLAY_DISP++, &pauseCtx->cursorVtx[16], 4, 0);
 
-                gDPLoadTextureBlock(OVERLAY_DISP++, gItemIcons[pauseCtx->equipTargetItem], G_IM_FMT_RGBA, G_IM_SIZ_32b,
-                                    32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK,
-                                    G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+                gDPLoadTextureBlock(OVERLAY_DISP++, ExtInv_GetItemIcon(pauseCtx->equipTargetItem), G_IM_FMT_RGBA,
+                                    G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP,
+                                    G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
             } else {
                 // Magic Arrow Equip Effect
                 svar1 = pauseCtx->equipTargetItem - 0xBF;
@@ -6674,12 +6820,15 @@ void Interface_Update(PlayState* play) {
     sEnvHazard = Player_GetEnvironmentalHazard(play);
 
     if (sEnvHazard == PLAYER_ENV_HAZARD_HOTROOM) {
+        // Check both equipped tunic (save data) AND currentTunic (set by transformation masks)
+        Player* player = GET_PLAYER(play);
         if (CUR_EQUIP_VALUE(EQUIP_TYPE_TUNIC) == EQUIP_VALUE_TUNIC_GORON ||
-            CVarGetInteger(CVAR_CHEAT("SuperTunic"), 0) != 0) {
+            player->currentTunic == PLAYER_TUNIC_GORON || CVarGetInteger(CVAR_CHEAT("SuperTunic"), 0) != 0) {
             sEnvHazard = PLAYER_ENV_HAZARD_NONE;
         }
     } else if ((Player_GetEnvironmentalHazard(play) >= 2) && (Player_GetEnvironmentalHazard(play) < 5)) {
-        if (CUR_EQUIP_VALUE(EQUIP_TYPE_TUNIC) == EQUIP_VALUE_TUNIC_ZORA ||
+        Player* player = GET_PLAYER(play);
+        if (CUR_EQUIP_VALUE(EQUIP_TYPE_TUNIC) == EQUIP_VALUE_TUNIC_ZORA || player->currentTunic == PLAYER_TUNIC_ZORA ||
             CVarGetInteger(CVAR_CHEAT("SuperTunic"), 0) != 0) {
             sEnvHazard = PLAYER_ENV_HAZARD_NONE;
         }

@@ -10,14 +10,320 @@
 #include "soh/Enhancements/randomizer/Traps.h"
 #include "z64item.h"
 #include <spdlog/spdlog.h>
+#include "soh/OTRGlobals.h" // CVarGetInteger
 
 std::vector<RandomizerGet> itemPool = {};
 std::vector<RandomizerGet> lesserPool = {};
 std::vector<RandomizerGet> plentifulPool = {};
 std::vector<RandomizerGet> junkPool = {};
-const std::array<RandomizerGet, 13> JunkPoolItems = {
-    RG_BOMBS_5,  RG_BOMBS_10,  RG_BOMBS_20,  RG_DEKU_NUTS_5, RG_DEKU_STICK_1, RG_DEKU_SEEDS_30, RG_RECOVERY_HEART,
-    RG_ARROWS_5, RG_ARROWS_10, RG_ARROWS_30, RG_BLUE_RUPEE,  RG_RED_RUPEE,    RG_DEKU_NUTS_10,
+const std::array<RandomizerGet, 16> JunkPoolItems = {
+    RG_BOMBS_5,        RG_BOMBS_10,   RG_BOMBS_20,     RG_DEKU_NUTS_5, RG_DEKU_STICK_1, RG_DEKU_SEEDS_30,
+    RG_RECOVERY_HEART, RG_ARROWS_5,   RG_ARROWS_10,    RG_ARROWS_30,   RG_BLUE_RUPEE,   RG_RED_RUPEE,
+    RG_PURPLE_RUPEE,   RG_HUGE_RUPEE, RG_DEKU_NUTS_10, RG_ICE_TRAP,
+};
+const std::array<RandomizerGet, 84> alwaysItems = {
+    RG_BIGGORON_SWORD,
+    RG_BOOMERANG,
+    RG_LENS_OF_TRUTH,
+    RG_MEGATON_HAMMER,
+    RG_IRON_BOOTS,
+    RG_GORON_TUNIC,
+    RG_ZORA_TUNIC,
+    RG_HOVER_BOOTS,
+    RG_MIRROR_SHIELD,
+    RG_STONE_OF_AGONY,
+    RG_FIRE_ARROWS,
+    RG_ICE_ARROWS,
+    RG_LIGHT_ARROWS,
+    RG_DINS_FIRE,
+    RG_FARORES_WIND,
+    RG_NAYRUS_LOVE,
+    RG_GREG_RUPEE,
+    RG_PROGRESSIVE_HOOKSHOT, // 2 progressive hookshots
+    RG_PROGRESSIVE_HOOKSHOT,
+    RG_DEKU_SHIELD,
+    RG_HYLIAN_SHIELD,
+    RG_PROGRESSIVE_STRENGTH, // 3 progressive strength upgrades
+    RG_PROGRESSIVE_STRENGTH,
+    RG_PROGRESSIVE_STRENGTH,
+    RG_PROGRESSIVE_SCALE, // 2 progressive scales
+    RG_PROGRESSIVE_SCALE,
+    RG_PROGRESSIVE_BOW, // 3 progressive Bows
+    RG_PROGRESSIVE_BOW,
+    RG_PROGRESSIVE_BOW,
+    RG_PROGRESSIVE_SLINGSHOT, // 3 progressive bullet bags
+    RG_PROGRESSIVE_SLINGSHOT,
+    RG_PROGRESSIVE_SLINGSHOT,
+    RG_PROGRESSIVE_BOMB_BAG, // 3 progressive bomb bags
+    RG_PROGRESSIVE_BOMB_BAG,
+    RG_PROGRESSIVE_BOMB_BAG,
+    RG_PROGRESSIVE_WALLET, // 2 progressive wallets
+    RG_PROGRESSIVE_WALLET,
+    RG_PROGRESSIVE_MAGIC_METER, // 2 progressive magic meters
+    RG_PROGRESSIVE_MAGIC_METER,
+    RG_DOUBLE_DEFENSE,
+    RG_PROGRESSIVE_STICK_UPGRADE, // 2 stick upgrades
+    RG_PROGRESSIVE_STICK_UPGRADE,
+    RG_PROGRESSIVE_NUT_UPGRADE, // 2 nut upgrades
+    RG_PROGRESSIVE_NUT_UPGRADE,
+    RG_RECOVERY_HEART, // 6 recovery hearts
+    RG_RECOVERY_HEART,
+    RG_RECOVERY_HEART,
+    RG_RECOVERY_HEART,
+    RG_RECOVERY_HEART,
+    RG_RECOVERY_HEART,
+    RG_BOMBS_5, // 2
+    RG_BOMBS_5,
+    RG_BOMBS_10,
+    RG_BOMBS_20,
+    RG_ARROWS_5,
+    RG_ARROWS_10, // 5
+    RG_ARROWS_10,
+    RG_ARROWS_10,
+    RG_TREASURE_GAME_HEART,
+    // Custom Items (24 items for second inventory page)
+    RG_PROGRESSIVE_ROCS, // First gives Feather, second gives Cape
+    RG_WHIP,
+    RG_SPINNER,
+    RG_BOMB_ARROWS,
+    RG_FIRE_ROD,
+    RG_DEMISE_DESTRUCTION,
+    RG_DEKU_LEAF,
+    RG_TIME_GATE,
+    RG_BEETLE,
+    RG_SWITCH_HOOK,
+    RG_ICE_ROD,
+    RG_ZONAI_PERMAFROST,
+    RG_MOGMA_MITTS,
+    RG_GUST_JAR,
+    RG_BALL_AND_CHAIN,
+    RG_PROGRESSIVE_ROCS, // Second progressive Roc's item
+    RG_LIGHT_ROD,
+    RG_HYLIAS_GRACE,
+    RG_LANTERN,
+    RG_PENDING_1,
+    RG_PENDING_3,
+    RG_CANE_OF_SOMARIA,
+    RG_SHOVEL,
+    RG_DOMINION_ROD,
+    RG_DESIRE_SENSOR,
+};
+const std::array<RandomizerGet, 44> easyItems = {
+    RG_BIGGORON_SWORD,
+    RG_KOKIRI_SWORD,
+    RG_MASTER_SWORD,
+    RG_BOOMERANG,
+    RG_LENS_OF_TRUTH,
+    RG_MEGATON_HAMMER,
+    RG_IRON_BOOTS,
+    RG_GORON_TUNIC,
+    RG_ZORA_TUNIC,
+    RG_HOVER_BOOTS,
+    RG_MIRROR_SHIELD,
+    RG_FIRE_ARROWS,
+    RG_LIGHT_ARROWS,
+    RG_DINS_FIRE,
+    RG_PROGRESSIVE_HOOKSHOT,
+    RG_PROGRESSIVE_STRENGTH,
+    RG_PROGRESSIVE_SCALE,
+    RG_PROGRESSIVE_WALLET,
+    RG_PROGRESSIVE_MAGIC_METER,
+    RG_PROGRESSIVE_STICK_UPGRADE,
+    RG_PROGRESSIVE_NUT_UPGRADE,
+    RG_PROGRESSIVE_BOW,
+    RG_PROGRESSIVE_SLINGSHOT,
+    RG_PROGRESSIVE_BOMB_BAG,
+    RG_DOUBLE_DEFENSE,
+    RG_HEART_CONTAINER, // 16 Heart Containers
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_PIECE_OF_HEART, // 3 heart pieces
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+};
+const std::array<RandomizerGet, 43> normalItems = {
+    // 35 pieces of heart
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    RG_PIECE_OF_HEART,
+    // 8 heart containers
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+    RG_HEART_CONTAINER,
+};
+const std::array<RandomizerGet, 2> DT_Vanilla = {
+    RG_RECOVERY_HEART,
+    RG_RECOVERY_HEART,
+};
+const std::array<RandomizerGet, 3> DT_MQ = {
+    RG_DEKU_SHIELD,
+    RG_DEKU_SHIELD,
+    RG_PURPLE_RUPEE,
+};
+const std::array<RandomizerGet, 1> DC_Vanilla = {
+    RG_RED_RUPEE,
+};
+const std::array<RandomizerGet, 2> DC_MQ = {
+    RG_HYLIAN_SHIELD,
+    RG_BLUE_RUPEE,
+};
+const std::array<RandomizerGet, 7> JB_MQ = {
+    RG_DEKU_NUTS_5, RG_DEKU_NUTS_5, RG_DEKU_NUTS_5, RG_DEKU_NUTS_5, RG_RECOVERY_HEART, RG_DEKU_SHIELD, RG_DEKU_STICK_1,
+};
+const std::array<RandomizerGet, 3> FoT_Vanilla = {
+    RG_RECOVERY_HEART,
+    RG_ARROWS_10,
+    RG_ARROWS_30,
+};
+const std::array<RandomizerGet, 1> FoT_MQ = {
+    RG_ARROWS_5,
+};
+const std::array<RandomizerGet, 1> FiT_Vanilla = {
+    RG_HUGE_RUPEE,
+};
+const std::array<RandomizerGet, 2> FiT_MQ = {
+    RG_BOMBS_20,
+    RG_HYLIAN_SHIELD,
+};
+const std::array<RandomizerGet, 4> SpT_Vanilla = {
+    RG_DEKU_SHIELD,
+    RG_DEKU_SHIELD,
+    RG_RECOVERY_HEART,
+    RG_BOMBS_20,
+};
+const std::array<RandomizerGet, 3> SpT_MQ = {
+    RG_PURPLE_RUPEE,
+    RG_PURPLE_RUPEE,
+    RG_ARROWS_30,
+};
+const std::array<RandomizerGet, 1> ShT_Vanilla = {
+    RG_ARROWS_30,
+};
+const std::array<RandomizerGet, 3> ShT_MQ = {
+    RG_ARROWS_5,
+    RG_ARROWS_5,
+    RG_RED_RUPEE,
+};
+const std::array<RandomizerGet, 7> BW_Vanilla = {
+    RG_RECOVERY_HEART, RG_BOMBS_10, RG_HUGE_RUPEE, RG_DEKU_NUTS_5, RG_DEKU_NUTS_10, RG_DEKU_SHIELD, RG_HYLIAN_SHIELD,
+};
+const std::array<RandomizerGet, 4> GTG_Vanilla = {
+    RG_ARROWS_30,
+    RG_ARROWS_30,
+    RG_ARROWS_30,
+    RG_HUGE_RUPEE,
+};
+const std::array<RandomizerGet, 5> GTG_MQ = {
+    RG_TREASURE_GAME_GREEN_RUPEE, RG_TREASURE_GAME_GREEN_RUPEE, RG_ARROWS_10, RG_GREEN_RUPEE, RG_PURPLE_RUPEE,
+};
+const std::array<RandomizerGet, 4> GC_Vanilla = {
+    RG_BLUE_RUPEE,
+    RG_BLUE_RUPEE,
+    RG_BLUE_RUPEE,
+    RG_ARROWS_30,
+};
+const std::array<RandomizerGet, 5> GC_MQ = {
+    RG_ARROWS_10, RG_ARROWS_10, RG_BOMBS_5, RG_RED_RUPEE, RG_RECOVERY_HEART,
+};
+const std::array<RandomizerGet, 11> normalBottles = {
+    RG_EMPTY_BOTTLE,
+    RG_BOTTLE_WITH_MILK,
+    RG_BOTTLE_WITH_RED_POTION,
+    RG_BOTTLE_WITH_GREEN_POTION,
+    RG_BOTTLE_WITH_BLUE_POTION,
+    RG_BOTTLE_WITH_FAIRY,
+    RG_BOTTLE_WITH_FISH,
+    RG_BOTTLE_WITH_BUGS,
+    RG_BOTTLE_WITH_POE,
+    RG_BOTTLE_WITH_BIG_POE,
+    RG_BOTTLE_WITH_BLUE_FIRE,
+};
+const std::array<RandomizerGet, 28> normalRupees = {
+    RG_BLUE_RUPEE,   RG_BLUE_RUPEE,   RG_BLUE_RUPEE,   RG_BLUE_RUPEE,   RG_BLUE_RUPEE,   RG_BLUE_RUPEE,
+    RG_BLUE_RUPEE,   RG_BLUE_RUPEE,   RG_BLUE_RUPEE,   RG_BLUE_RUPEE,   RG_BLUE_RUPEE,   RG_BLUE_RUPEE,
+    RG_BLUE_RUPEE,   RG_RED_RUPEE,    RG_RED_RUPEE,    RG_RED_RUPEE,    RG_RED_RUPEE,    RG_RED_RUPEE,
+    RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE,
+    RG_PURPLE_RUPEE, RG_HUGE_RUPEE,   RG_HUGE_RUPEE,   RG_HUGE_RUPEE,
+};
+const std::array<RandomizerGet, 28> shopsanityRupees = {
+    RG_BLUE_RUPEE,   RG_BLUE_RUPEE,   RG_RED_RUPEE,    RG_RED_RUPEE,    RG_RED_RUPEE,    RG_RED_RUPEE,
+    RG_RED_RUPEE,    RG_RED_RUPEE,    RG_RED_RUPEE,    RG_RED_RUPEE,    RG_RED_RUPEE,    RG_RED_RUPEE,
+    RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE,
+    RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_PURPLE_RUPEE, RG_HUGE_RUPEE,   RG_HUGE_RUPEE,
+    RG_HUGE_RUPEE,   RG_HUGE_RUPEE,   RG_HUGE_RUPEE,   RG_HUGE_RUPEE,
+};
+const std::array<RandomizerGet, 19> dekuScrubItems = {
+    RG_DEKU_NUTS_5,  RG_DEKU_NUTS_5,    RG_DEKU_NUTS_5,    RG_DEKU_NUTS_5,    RG_DEKU_NUTS_5,
+    RG_DEKU_STICK_1, RG_BOMBS_5,        RG_BOMBS_5,        RG_BOMBS_5,        RG_BOMBS_5,
+    RG_BOMBS_5,      RG_RECOVERY_HEART, RG_RECOVERY_HEART, RG_RECOVERY_HEART, RG_RECOVERY_HEART,
+    RG_BLUE_RUPEE,   RG_BLUE_RUPEE,     RG_BLUE_RUPEE,     RG_BLUE_RUPEE,
+};
+const std::array<RandomizerGet, 12> songList = {
+    RG_ZELDAS_LULLABY, RG_EPONAS_SONG,       RG_SUNS_SONG,          RG_SARIAS_SONG,
+    RG_SONG_OF_TIME,   RG_SONG_OF_STORMS,    RG_MINUET_OF_FOREST,   RG_PRELUDE_OF_LIGHT,
+    RG_BOLERO_OF_FIRE, RG_SERENADE_OF_WATER, RG_NOCTURNE_OF_SHADOW, RG_REQUIEM_OF_SPIRIT,
+};
+const std::array<RandomizerGet, 10> tradeItems = {
+    RG_POCKET_EGG,
+    // RG_POCKET_CUCCO,
+    RG_COJIRO,
+    RG_ODD_MUSHROOM,
+    RG_POACHERS_SAW,
+    RG_BROKEN_SWORD,
+    RG_PRESCRIPTION,
+    RG_EYEBALL_FROG,
+    RG_EYEDROPS,
+    RG_CLAIM_CHECK,
 };
 // RANDOTODO should probably check the same thing as check matches contents at some point
 const std::map<RandomizerGet, std::vector<RandomizerGet>*> poolForItem = {
@@ -68,12 +374,29 @@ void AddFixedItemToPool(RandomizerGet item, int count = 1, bool iceTrapModel = t
     }
 }
 
+static bool IceTrapsAllowed() {
+    return ctx->GetOption(RSK_BASE_ICE_TRAPS).Get() != 0
+        || ctx->GetOption(RSK_ADDITIONAL_ICE_TRAPS).Get() > 0
+        || ctx->GetOption(RSK_ICE_TRAP_PERCENT).Get() > 0;
+}
+
+static RandomizerGet RandomJunkExcludingTraps() {
+    if (IceTrapsAllowed()) {
+        return RandomElement(JunkPoolItems);
+    }
+    RandomizerGet pick;
+    do {
+        pick = RandomElement(JunkPoolItems);
+    } while (pick == RG_ICE_TRAP);
+    return pick;
+}
+
 RandomizerGet GetJunkItem() {
     if (Rando::Traps::ShouldJunkItemBeTrap()) {
         return RG_ICE_TRAP;
     }
 
-    return RandomElement(JunkPoolItems);
+    return RandomJunkExcludingTraps();
 }
 
 // Replace junk items in the pool with pending junk
@@ -156,24 +479,29 @@ void GenerateItemPool() {
     lesserPool.clear();
     int reservedSlots = 0;
 
+    // When this is on, vanilla OOT "tool/spell" majors are skipped so the NEI custom items
+    // can take their pool slots. Equipment (tunics, boots, shields, swords) and capacity
+    // upgrades (bomb bag, magic meter, etc.) are intentionally kept.
+    bool removeVanillaMajors = CVarGetInteger(CVAR_RANDOMIZER_SETTING("RemoveVanillaMajors"), 0) != 0;
+
     // clang-format off
-    AddItemToPool(RG_BOOMERANG, 2, 1, 1, 1);
-    AddItemToPool(RG_LENS_OF_TRUTH, 2, 1, 1, 1);
-    AddItemToPool(RG_MEGATON_HAMMER, 2, 1, 1, 1);
+    if (!removeVanillaMajors) AddItemToPool(RG_BOOMERANG, 2, 1, 1, 1);
+    if (!removeVanillaMajors) AddItemToPool(RG_LENS_OF_TRUTH, 2, 1, 1, 1);
+    if (!removeVanillaMajors) AddItemToPool(RG_MEGATON_HAMMER, 2, 1, 1, 1);
     AddItemToPool(RG_IRON_BOOTS, 2, 1, 1, 1);
     AddItemToPool(RG_GORON_TUNIC, 2, 1, 1, 1);
     AddItemToPool(RG_ZORA_TUNIC, 2, 1, 1, 1);
     AddItemToPool(RG_HOVER_BOOTS, 2, 1, 1, 1);
     AddItemToPool(RG_MIRROR_SHIELD, 2, 1, 1, 1);
     AddItemToPool(RG_STONE_OF_AGONY, 2, 1, 1, 1);
-    AddItemToPool(RG_FIRE_ARROWS, 2, 1, 1, 1);
-    AddItemToPool(RG_ICE_ARROWS, 2, 1, 1, 1);
-    AddItemToPool(RG_LIGHT_ARROWS, 2, 1, 1, 1);
-    AddItemToPool(RG_DINS_FIRE, 2, 1, 1, 1);
-    AddItemToPool(RG_FARORES_WIND, 2, 1, 1, 0);
-    AddItemToPool(RG_NAYRUS_LOVE, 2, 1, 1, 0);
+    if (!removeVanillaMajors) AddItemToPool(RG_FIRE_ARROWS, 2, 1, 1, 1);
+    if (!removeVanillaMajors) AddItemToPool(RG_ICE_ARROWS, 2, 1, 1, 1);
+    if (!removeVanillaMajors) AddItemToPool(RG_LIGHT_ARROWS, 2, 1, 1, 1);
+    if (!removeVanillaMajors) AddItemToPool(RG_DINS_FIRE, 2, 1, 1, 1);
+    if (!removeVanillaMajors) AddItemToPool(RG_FARORES_WIND, 2, 1, 1, 0);
+    if (!removeVanillaMajors) AddItemToPool(RG_NAYRUS_LOVE, 2, 1, 1, 0);
     AddItemToPool(RG_GREG_RUPEE, 1, 1, 1, 1);
-    AddItemToPool(RG_PROGRESSIVE_HOOKSHOT, 2, 2, 2, 2);
+    if (!removeVanillaMajors) AddItemToPool(RG_PROGRESSIVE_HOOKSHOT, 2, 2, 2, 2);
     AddItemToPool(RG_HYLIAN_SHIELD, 1, 1, 1, 1);
     AddItemToPool(RG_DOUBLE_DEFENSE, 2, 1, 0, 0);
     AddItemToPool(RG_BIGGORON_SWORD, 2, 1, 1, 0);
@@ -200,14 +528,16 @@ void GenerateItemPool() {
     }
 
     int infiniteProgressive = ctx->GetOption(RSK_INFINITE_UPGRADES).Is(RO_INF_UPGRADES_PROGRESSIVE) ? 1 : 0;
-    AddItemToPool(RG_PROGRESSIVE_BOW, 4 + infiniteProgressive, 
-                                      3 + infiniteProgressive, 
-                                      2 + infiniteProgressive,
-                                      1 + infiniteProgressive);
-    AddItemToPool(RG_PROGRESSIVE_SLINGSHOT, 4 + infiniteProgressive, 
-                                            3 + infiniteProgressive, 
-                                            2 + infiniteProgressive,
-                                            1 + infiniteProgressive);
+    if (!removeVanillaMajors) {
+        AddItemToPool(RG_PROGRESSIVE_BOW, 4 + infiniteProgressive,
+                                          3 + infiniteProgressive,
+                                          2 + infiniteProgressive,
+                                          1 + infiniteProgressive);
+        AddItemToPool(RG_PROGRESSIVE_SLINGSHOT, 4 + infiniteProgressive,
+                                                3 + infiniteProgressive,
+                                                2 + infiniteProgressive,
+                                                1 + infiniteProgressive);
+    }
     AddItemToPool(RG_PROGRESSIVE_BOMB_BAG,  4 + infiniteProgressive, 
                                             3 + infiniteProgressive, 
                                             2 + infiniteProgressive,
@@ -387,18 +717,141 @@ void GenerateItemPool() {
     }
 
     if (ctx->GetOption(RSK_MASK_QUEST).Is(RO_MASK_QUEST_SHUFFLE)) {
-        AddItemToPool(RG_KEATON_MASK, 2, 1, 1, 1);
+        // Remove OOT masks that have MM counterparts when MM masks are in the rando pool
+        bool mmMasksInPool = ctx->GetOption(RSK_MM_MASKS_ALL) ||
+                             ctx->GetOption(RSK_MM_MASKS_TRANSFORM);
+        if (!mmMasksInPool) {
+            AddItemToPool(RG_GORON_MASK, 2, 1, 1, 1);
+            AddItemToPool(RG_ZORA_MASK, 2, 1, 1, 1);
+        } else if (ctx->GetOption(RSK_MM_MASKS_ALL)) {
+            AddItemToPool(RG_KEATON_MASK, 2, 1, 1, 1);
+            AddItemToPool(RG_BUNNY_HOOD, 2, 1, 1, 1);
+            AddItemToPool(RG_MASK_OF_TRUTH, 2, 1, 1, 1);
+        }
         AddItemToPool(RG_SKULL_MASK, 2, 1, 1, 1);
         AddItemToPool(RG_SPOOKY_MASK, 2, 1, 1, 1);
-        AddItemToPool(RG_BUNNY_HOOD, 2, 1, 1, 1);
-        AddItemToPool(RG_GORON_MASK, 2, 1, 1, 1);
-        AddItemToPool(RG_ZORA_MASK, 2, 1, 1, 1);
         AddItemToPool(RG_GERUDO_MASK, 2, 1, 1, 1);
-        AddItemToPool(RG_MASK_OF_TRUTH, 2, 1, 1, 1);
     }
 
     if (ctx->GetOption(RSK_ROCS_FEATHER)) {
         AddItemToPool(RG_ROCS_FEATHER, 2, 1, 1, 1);
+    }
+
+    // MM Masks (Third Inventory Page) - All 24 masks
+    SPDLOG_INFO("[NEI] RSK gates at GenerateItemPool: MM_MASKS_ALL={} MM_MASKS_TRANSFORM={} SKIJER_CUSTOM_ITEMS={} EXT_EQUIPMENT={}",
+                ctx->GetOption(RSK_MM_MASKS_ALL).Get(), ctx->GetOption(RSK_MM_MASKS_TRANSFORM).Get(),
+                ctx->GetOption(RSK_SKIJER_CUSTOM_ITEMS).Get(), ctx->GetOption(RSK_EXT_EQUIPMENT).Get());
+    SPDLOG_INFO("[NEI] CVar values at GenerateItemPool: MmMasksAll={} MmMasksTransform={} SkijerCustomItems={} ExtEquipment={}",
+                CVarGetInteger(CVAR_RANDOMIZER_SETTING("MmMasksAll"), -1),
+                CVarGetInteger(CVAR_RANDOMIZER_SETTING("MmMasksTransform"), -1),
+                CVarGetInteger(CVAR_RANDOMIZER_SETTING("SkijerCustomItems"), -1),
+                CVarGetInteger(CVAR_RANDOMIZER_SETTING("ExtEquipment"), -1));
+    SPDLOG_INFO("[NEI] itemPool.size() before NEI blocks = {}", itemPool.size());
+    if (ctx->GetOption(RSK_MM_MASKS_ALL)) {
+        SPDLOG_INFO("[NEI] MM_MASKS_ALL block ENTERED — adding 24 masks");
+        AddItemToPool(RG_MM_MASK_POSTMAN, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_ALL_NIGHT, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_BLAST, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_STONE, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_GREAT_FAIRY, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_DEKU, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_KEATON, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_BREMEN, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_BUNNY, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_DON_GERO, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_SCENTS, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_GORON, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_ROMANI, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_CIRCUS_LEADER, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_KAFEI, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_COUPLE, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_TRUTH, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_ZORA, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_KAMARO, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_GIBDO, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_GARO, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_CAPTAIN, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_GIANT, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_FIERCE_DEITY, 2, 1, 1, 1);
+    }
+    // MM Masks - Transformation Only (4 masks)
+    else if (ctx->GetOption(RSK_MM_MASKS_TRANSFORM)) {
+        SPDLOG_INFO("[NEI] MM_MASKS_TRANSFORM block ENTERED — adding 4 masks");
+        AddItemToPool(RG_MM_MASK_DEKU, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_GORON, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_ZORA, 2, 1, 1, 1);
+        AddItemToPool(RG_MM_MASK_FIERCE_DEITY, 2, 1, 1, 1);
+    }
+
+    // Skijer's Custom Items (Second Inventory Page) - 24 items.
+    // We use AddFixedItemToPool here (instead of AddItemToPool) so each custom item enters the
+    // pool exactly once regardless of "Item Pool" setting. AddItemToPool in Plentiful mode also
+    // pushes a duplicate into plentifulPool, which doubled the custom-item count and caused the
+    // pool to overflow available major-item locations — symptom: most custom items silently
+    // dropped from the placement and never appeared in generated seeds.
+    if (ctx->GetOption(RSK_SKIJER_CUSTOM_ITEMS)) {
+        SPDLOG_INFO("[NEI] SKIJER_CUSTOM_ITEMS block ENTERED — adding 24 custom items, itemPool.size() before = {}", itemPool.size());
+        AddFixedItemToPool(RG_PROGRESSIVE_ROCS, 2); // Progressive: Feather then Cape
+        AddFixedItemToPool(RG_WHIP);
+        AddFixedItemToPool(RG_SPINNER);
+        AddFixedItemToPool(RG_BOMB_ARROWS);
+        AddFixedItemToPool(RG_FIRE_ROD);
+        AddFixedItemToPool(RG_DEMISE_DESTRUCTION);
+        AddFixedItemToPool(RG_DEKU_LEAF);
+        AddFixedItemToPool(RG_TIME_GATE);
+        AddFixedItemToPool(RG_BEETLE);
+        AddFixedItemToPool(RG_SWITCH_HOOK);
+        AddFixedItemToPool(RG_ICE_ROD);
+        AddFixedItemToPool(RG_ZONAI_PERMAFROST);
+        AddFixedItemToPool(RG_MOGMA_MITTS);
+        AddFixedItemToPool(RG_GUST_JAR);
+        AddFixedItemToPool(RG_BALL_AND_CHAIN);
+        AddFixedItemToPool(RG_LIGHT_ROD);
+        AddFixedItemToPool(RG_HYLIAS_GRACE);
+        AddFixedItemToPool(RG_LANTERN);
+        AddFixedItemToPool(RG_PENDING_1); // Minish Cap
+        AddFixedItemToPool(RG_PENDING_3); // Pokeball
+        AddFixedItemToPool(RG_CANE_OF_SOMARIA);
+        AddFixedItemToPool(RG_SHOVEL);
+        AddFixedItemToPool(RG_DOMINION_ROD);
+        AddFixedItemToPool(RG_DESIRE_SENSOR);
+    }
+
+    // Extended Equipment (12 items for equipment page 2). Same fixed-pool reasoning as above —
+    // ensure each ext equipment piece is placed exactly once when the cheat is enabled.
+    if (ctx->GetOption(RSK_EXT_EQUIPMENT)) {
+        SPDLOG_INFO("[NEI] EXT_EQUIPMENT block ENTERED — adding 12 ext equipment items, itemPool.size() before = {}", itemPool.size());
+        AddFixedItemToPool(RG_EXT_CANE_OF_BYRNA);
+        AddFixedItemToPool(RG_EXT_FOUR_SWORD);
+        AddFixedItemToPool(RG_EXT_IRON_KNUCKLE_AXE);
+        AddFixedItemToPool(RG_EXT_DIVINE_SHIELD);
+        AddFixedItemToPool(RG_EXT_SHEIKAH_SHIELD);
+        AddFixedItemToPool(RG_EXT_SHIELD_OF_IKANA);
+        AddFixedItemToPool(RG_EXT_MAGIC_CAPE);
+        AddFixedItemToPool(RG_EXT_SPIRIT_BREASTPLATE);
+        AddFixedItemToPool(RG_EXT_CHAMPIONS_TUNIC);
+        AddFixedItemToPool(RG_EXT_PEGASUS_ANKLET);
+        AddFixedItemToPool(RG_EXT_PENDANT_OF_MEMORIES);
+        AddFixedItemToPool(RG_EXT_WATER_DRAGON_SCALE);
+    }
+
+    // Post-NEI snapshot: count how many of each NEI category survived in itemPool
+    {
+        size_t maskCount = 0, customCount = 0, extCount = 0;
+        for (const RandomizerGet rg : itemPool) {
+            if (rg >= RG_MM_MASK_POSTMAN && rg <= RG_MM_MASK_FIERCE_DEITY) maskCount++;
+            else if (rg == RG_WHIP || rg == RG_SPINNER || rg == RG_BEETLE || rg == RG_BALL_AND_CHAIN ||
+                     rg == RG_GUST_JAR || rg == RG_MOGMA_MITTS || rg == RG_SWITCH_HOOK ||
+                     rg == RG_CANE_OF_SOMARIA || rg == RG_DOMINION_ROD || rg == RG_SHOVEL ||
+                     rg == RG_LANTERN || rg == RG_BOMB_ARROWS || rg == RG_FIRE_ROD ||
+                     rg == RG_ICE_ROD || rg == RG_LIGHT_ROD || rg == RG_DEKU_LEAF ||
+                     rg == RG_TIME_GATE || rg == RG_DEMISE_DESTRUCTION || rg == RG_ZONAI_PERMAFROST ||
+                     rg == RG_HYLIAS_GRACE || rg == RG_DESIRE_SENSOR || rg == RG_PROGRESSIVE_ROCS ||
+                     rg == RG_PENDING_1 || rg == RG_PENDING_3) customCount++;
+            else if (rg >= RG_EXT_CANE_OF_BYRNA && rg <= RG_EXT_WATER_DRAGON_SCALE) extCount++;
+        }
+        SPDLOG_INFO("[NEI] After NEI blocks: itemPool.size()={} masks={} custom={} ext={}",
+                    itemPool.size(), maskCount, customCount, extCount);
     }
 
     int bronzeScale = ctx->GetOption(RSK_SHUFFLE_SWIM) ? 1 : 0;
@@ -955,7 +1408,7 @@ void GenerateItemPool() {
         if (junkToAdd > junkPool.size()) {
             itemPool.insert(itemPool.end(), junkPool.begin(), junkPool.end());
             while (itemPool.size() < locCount) {
-                itemPool.insert(itemPool.end(), RandomElement(JunkPoolItems));
+                itemPool.insert(itemPool.end(), RandomJunkExcludingTraps());
             }
         } else {
             while (itemPool.size() < locCount) {

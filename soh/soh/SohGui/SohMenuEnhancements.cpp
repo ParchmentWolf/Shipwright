@@ -832,10 +832,24 @@ void SohMenu::AddMenuEnhancements() {
                      .Tooltip("Wearing the Bunny Hood grants a speed and jump boost like in Majora's Mask.\n"
                               "Can also be limited to only the speed boost.\n"
                               "The effects of either option are not accounted for in Randomizer logic.\n"
-                              "Also disables NPC's reactions to wearing the Bunny Hood."));
+                              "Also disables NPC's reactions to wearing the Bunny Hood."))
+        .PreFunc([](WidgetInfo& info) {
+            if (CVarGetInteger("gMods.MmMasks.InventoryEnabled", 0)) {
+                CVarSetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), 2); // Force Fast + Jump
+                info.options->disabled = true;
+                info.options->disabledTooltip = "Automatically set to Fast + Jump by MM Masks Inventory";
+            }
+        });
     AddWidget(path, "Masks Equippable as Adult", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("AdultMasks"))
-        .Options(CheckboxOptions().Tooltip("Allows masks to be equipped normally from the pause menu as adult."));
+        .Options(CheckboxOptions().Tooltip("Allows masks to be equipped normally from the pause menu as adult."))
+        .PreFunc([](WidgetInfo& info) {
+            if (CVarGetInteger("gMods.MmMasks.InventoryEnabled", 0)) {
+                CVarSetInteger(CVAR_ENHANCEMENT("AdultMasks"), 1); // Force enabled
+                info.options->disabled = true;
+                info.options->disabledTooltip = "Automatically enabled by MM Masks Inventory";
+            }
+        });
     AddWidget(path, "Persistent Masks", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("PersistentMasks"))
         .Options(
@@ -848,6 +862,12 @@ void SohMenu::AddMenuEnhancements() {
     AddWidget(path, "Invisible Bunny Hood", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("HideBunnyHood"))
         .Options(CheckboxOptions().Tooltip("Turns Bunny Hood Invisible while still maintaining its effects."));
+    AddWidget(path, "Invisible Non-Transformation Masks", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_ENHANCEMENT("HideNonTransformationMasks"))
+        .Options(CheckboxOptions().Tooltip(
+            "Turns all MM non-transformation masks invisible while still maintaining their effects.\n"
+            "Transformation masks (Deku, Goron, Zora, Fierce Deity) remain visible.\n"
+            "Only affects MM masks; vanilla OOT child masks are unaffected (use Invisible Bunny Hood for OOT bunny hood)."));
     AddWidget(path, "Mask Select in Inventory", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("MaskSelect"))
         .PreFunc([](WidgetInfo& info) {
@@ -1969,6 +1989,25 @@ void SohMenu::AddMenuEnhancements() {
             .CVar(timer.timeEnable)
             .Callback([](WidgetInfo& info) { TimeDisplayUpdateDisplayOptions(); });
     }
+}
+
+// ===================== SW97 Medallion Spells =====================
+
+void SohMenu::AddMenuSw97() {
+    WidgetPath path = { "Settings", "Skijer's NEI", SECTION_COLUMN_1 };
+    AddWidget(path, "SW97 Spells", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "Mute MM Audio", WIDGET_CVAR_CHECKBOX)
+        .CVar("gEnhancements.SkijerNEI.MuteMmAudio")
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip("Mute all sounds from MM (mm.o2r).\n"
+                                                              "Transformation mask SFX, voices, and instruments\n"
+                                                              "will be silenced. OOT sounds play instead."));
+    AddWidget(path, "SW97 Medallion Spells", WIDGET_CVAR_CHECKBOX)
+        .CVar("gEnhancements.SkijerNEI.SW97Medallions")
+        .Options(CheckboxOptions().Tooltip("Equip quest medallions to C-buttons from Quest Status.\n"
+                                           "C = cast elemental spell, L+C = set elemental arrow/slingshot.\n"
+                                           "Adult: elemental arrows. Child: elemental slingshot seeds.\n"
+                                           "Requires obtaining medallions from bosses.\n\n"
+                                           "Credit: z64proto/sw97 team (spell/arrow actors)"));
 }
 
 } // namespace SohGui

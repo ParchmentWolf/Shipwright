@@ -38,6 +38,68 @@ extern "C" {
 #include "objects/object_tw/object_tw.h"
 #include "objects/object_ganon2/object_ganon2.h"
 #include "objects/object_gi_shield_1/object_gi_shield_1.h"
+#include "objects/object_gi_shield_3/object_gi_shield_3.h"
+#include "objects/object_gi_hookshot/object_gi_hookshot.h"
+#include "objects/object_tk/object_tk.h"
+
+#include "mods/mm_sources/objects/object_gi_masks_all.h"
+#include "mods/mm_sources/objects/object_gi_bottle_21.h"
+#include "mods/transformation_masks/assets/mm_asset_loader.h"
+
+#include "objects/object_poh/object_poh.h"
+#include "mods/items/objects/rocs_cape_giveDL/header.h"
+#include "mods/items/objects/rocs_cape_giveDL/model.inc.c"
+#include "mods/items/objects/rocs_feather_giveDL/header.h"
+#include "mods/items/objects/rocs_feather_giveDL/model.inc.c"
+#include "mods/items/objects/gust_jar_giveDL/header.h"
+#include "mods/items/objects/gust_jar_giveDL/model.inc.c"
+#include "mods/items/objects/deku_leaf_giveDL/header.h"
+#include "mods/items/objects/deku_leaf_giveDL/model.inc.c"
+#include "mods/items/objects/ball_and_chainDL/header.h"
+#include "mods/items/objects/ball_and_chainDL/model.inc.c"
+#include "mods/items/objects/spinner_giveDL/header.h"
+#include "mods/items/objects/spinner_giveDL/model.inc.c"
+#include "mods/items/objects/beetle_giveDL/header.h"
+#include "mods/items/objects/beetle_giveDL/model.inc.c"
+#include "mods/items/objects/somaria_cane_DL/header.h"
+#include "mods/items/objects/somaria_cane_DL/model.inc.c"
+#include "mods/items/objects/mogma_mittsDL/header.h"
+#include "mods/items/objects/mogma_mittsDL/model.inc.c"
+#include "mods/items/objects/magic_spell_giveDL/header.h"
+#include "mods/items/objects/magic_spell_giveDL/model.inc.c"
+#include "mods/items/objects/bombarrows_giveDL/header.h"
+#include "mods/items/objects/bombarrows_giveDL/model.inc.c"
+#include "mods/items/objects/time_gate_giveDL/header.h"
+#include "mods/items/objects/time_gate_giveDL/model.inc.c"
+#include "mods/items/objects/desire_sensor_giveDL/header.h"
+#include "mods/items/objects/desire_sensor_giveDL/model.inc.c"
+#include "mods/items/objects/fire_rodDL/header.h"
+#include "mods/items/objects/fire_rodDL/model.inc.c"
+#include "mods/items/objects/ice_rodDL/header.h"
+#include "mods/items/objects/ice_rodDL/model.inc.c"
+#include "mods/items/objects/light_rodDL/header.h"
+#include "mods/items/objects/light_rodDL/Cylinder_002.c"
+#include "mods/items/objects/whip_giveDL/header.h"
+#include "mods/items/objects/whip_giveDL/model.inc.c"
+#include "mods/items/objects/switchhook_giveDL/header.h"
+#include "mods/items/objects/switchhook_giveDL/model.inc.c"
+#include "mods/items/objects/shovel_giveDL/header.h"
+#include "mods/items/objects/shovel_giveDL/model.inc.c"
+#include "mods/items/objects/pokeballDL/ItmPokeBall.h"
+#include "mods/items/objects/pokeballDL/ItmPokeBall.c"
+#include "mods/items/objects/minish_capDL/header.h"
+#include "mods/items/objects/minish_capDL/model.inc.c"
+
+// Vanilla GI equipment models (for ext equipment recolor draws)
+#include "objects/object_gi_sword_1/object_gi_sword_1.h"
+#include "objects/object_gi_shield_2/object_gi_shield_2.h"
+#include "objects/object_gi_clothes/object_gi_clothes.h"
+#include "objects/object_gi_hoverboots/object_gi_hoverboots.h"
+
+// Extended equipment models (DLs already compiled in equip_ikaxe.c / equip_breastplate.c)
+#include "mods/equipment/objects/ikaxe_DL/header.h"
+#include "mods/equipment/objects/breastplate_DL/header.h"
+
 extern PlayState* gPlayState;
 extern SaveContext gSaveContext;
 }
@@ -1393,3 +1455,687 @@ extern "C" void Randomizer_DrawOverworldKey(PlayState* play, GetItemEntry* getIt
 
     CLOSE_DISPS(play->state.gfxCtx);
 }
+
+// ============================================================================
+// Custom 24 Items - 3D Models and Draw Functions
+// ============================================================================
+
+// Embedded object models - Green cubes for all items except Ice Rod (blue)
+static Vtx object_rando_rocsfeatherVtx[] = {
+    VTX(-10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),  VTX(10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),    VTX(-10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(-10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF), VTX(10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),   VTX(-10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(-10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF), VTX(-10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(-10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),   VTX(-10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),  VTX(10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),    VTX(10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(-10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),  VTX(10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),    VTX(-10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(-10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF), VTX(10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    VTX(10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),   VTX(-10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),
+};
+
+Gfx gRandoRocsfeatherDL[] = {
+    gsDPPipeSync(),
+    gsDPSetCombineLERP(PRIMITIVE, 0, SHADE, 0, PRIMITIVE, 0, SHADE, 0, PRIMITIVE, 0, SHADE, 0, PRIMITIVE, 0, SHADE, 0),
+    gsDPSetPrimColor(0, 0, 0x00, 0xFF, 0x00, 0xFF),
+    gsSPClearGeometryMode(G_CULL_BACK | G_FOG | G_LIGHTING | G_TEXTURE_GEN | G_TEXTURE_GEN_LINEAR),
+    gsSPSetGeometryMode(G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH),
+    gsSPVertex(object_rando_rocsfeatherVtx, 24, 0),
+    gsSP2Triangles(0, 1, 2, 0, 0, 2, 3, 0),
+    gsSP2Triangles(4, 6, 5, 0, 4, 7, 6, 0),
+    gsSP2Triangles(8, 9, 10, 0, 8, 10, 11, 0),
+    gsSP2Triangles(12, 14, 13, 0, 12, 15, 14, 0),
+    gsSP2Triangles(16, 17, 18, 0, 16, 18, 19, 0),
+    gsSP2Triangles(20, 22, 21, 0, 20, 23, 22, 0),
+    gsSPEndDisplayList(),
+};
+
+// Copy the same structure for all other items (I'll create a macro to reduce repetition)
+#define DEFINE_GREEN_CUBE_ITEM(name)                                                                             \
+    static Vtx object_rando_##name##Vtx[] = {                                                                    \
+        VTX(-10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),  VTX(10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),        \
+        VTX(10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),    VTX(-10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),        \
+        VTX(-10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF), VTX(10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),       \
+        VTX(10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),   VTX(-10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),       \
+        VTX(-10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF), VTX(-10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),       \
+        VTX(-10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),   VTX(-10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),       \
+        VTX(10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),  VTX(10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),        \
+        VTX(10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),    VTX(10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),        \
+        VTX(-10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),  VTX(10, 10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),        \
+        VTX(10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),    VTX(-10, 10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),        \
+        VTX(-10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF), VTX(10, -10, -10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),       \
+        VTX(10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),   VTX(-10, -10, 10, 0, 0, 0x00, 0xFF, 0x00, 0xFF),       \
+    };                                                                                                           \
+    Gfx gRando##name##DL[] = {                                                                                   \
+        gsDPPipeSync(),                                                                                          \
+        gsDPSetCombineLERP(PRIMITIVE, 0, SHADE, 0, PRIMITIVE, 0, SHADE, 0, PRIMITIVE, 0, SHADE, 0, PRIMITIVE, 0, \
+                           SHADE, 0),                                                                            \
+        gsDPSetPrimColor(0, 0, 0x00, 0xFF, 0x00, 0xFF),                                                          \
+        gsSPClearGeometryMode(G_CULL_BACK | G_FOG | G_LIGHTING | G_TEXTURE_GEN | G_TEXTURE_GEN_LINEAR),          \
+        gsSPSetGeometryMode(G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH),                                             \
+        gsSPVertex(object_rando_##name##Vtx, 24, 0),                                                             \
+        gsSP2Triangles(0, 1, 2, 0, 0, 2, 3, 0),                                                                  \
+        gsSP2Triangles(4, 6, 5, 0, 4, 7, 6, 0),                                                                  \
+        gsSP2Triangles(8, 9, 10, 0, 8, 10, 11, 0),                                                               \
+        gsSP2Triangles(12, 14, 13, 0, 12, 15, 14, 0),                                                            \
+        gsSP2Triangles(16, 17, 18, 0, 16, 18, 19, 0),                                                            \
+        gsSP2Triangles(20, 22, 21, 0, 20, 23, 22, 0),                                                            \
+        gsSPEndDisplayList(),                                                                                    \
+    };
+
+Gfx gRandoRocsCapeDL[] = {
+    gsSPDisplayList(rocs_cape_mesh_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoRocsFeatherDL[] = {
+    gsSPDisplayList(rocs_feather_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoGustjarDL[] = {
+    gsSPDisplayList(jar_model_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoDekuLeafDL[] = {
+    gsSPDisplayList(g_dekuleaf_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoBallandChainDL[] = {
+    gsSPDisplayList(g_ball_and_chain_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoSpinnerDL[] = {
+    gsSPDisplayList(g_spinner_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoBeetleDL[] = {
+    gsSPDisplayList(g_beetle_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoSomariaCaneDL[] = {
+    gsSPDisplayList(g_somaria_cane_give_dl),
+    gsSPEndDisplayList(),
+};
+
+// Blue Byrna cane materials for GI draw
+static Gfx gfx_byrna_gi_mat_body[] = {
+    gsSPLoadGeometryMode(G_SHADE | G_FOG | G_CULL_BACK | G_ZBUFFER | G_SHADING_SMOOTH | G_LIGHTING),
+    gsDPPipeSync(),
+    gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, 1, COMBINED, 0, PRIMITIVE, 0, 0, 0, 0, COMBINED),
+    gsSPSetOtherMode(G_SETOTHERMODE_H, 4, 20,
+                     G_TD_CLAMP | G_CYC_2CYCLE | G_AD_NOISE | G_CD_MAGICSQ | G_TP_PERSP | G_TL_TILE | G_TF_BILERP |
+                         G_CK_NONE | G_PM_NPRIMITIVE | G_TT_NONE | G_TC_FILT),
+    gsSPSetOtherMode(G_SETOTHERMODE_L, 0, 32, G_RM_FOG_SHADE_A | G_AC_NONE | G_ZS_PIXEL | G_RM_AA_ZB_OPA_SURF2),
+    gsSPTexture(65535, 65535, 0, 0, 1),
+    gsDPSetPrimColor(0, 0, 41, 80, 200, 255),
+    gsSPEndDisplayList(),
+};
+static Gfx gfx_byrna_gi_mat_color[] = {
+    gsSPLoadGeometryMode(G_SHADE | G_FOG | G_CULL_BACK | G_ZBUFFER | G_SHADING_SMOOTH | G_LIGHTING),
+    gsDPPipeSync(),
+    gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, 1, COMBINED, 0, PRIMITIVE, 0, 0, 0, 0, COMBINED),
+    gsSPSetOtherMode(G_SETOTHERMODE_H, 4, 20,
+                     G_TD_CLAMP | G_CYC_2CYCLE | G_AD_NOISE | G_CD_MAGICSQ | G_TP_PERSP | G_TL_TILE | G_TF_BILERP |
+                         G_CK_NONE | G_PM_NPRIMITIVE | G_TT_NONE | G_TC_FILT),
+    gsSPSetOtherMode(G_SETOTHERMODE_L, 0, 32, G_RM_FOG_SHADE_A | G_AC_NONE | G_ZS_PIXEL | G_RM_AA_ZB_OPA_SURF2),
+    gsSPTexture(65535, 65535, 0, 0, 1),
+    gsDPSetPrimColor(0, 0, 80, 140, 255, 255),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoByrnaCaneGiveDL[] = {
+    gsDPPipeSync(),
+    gsSPClearGeometryMode(G_CULL_BACK | G_FOG | G_TEXTURE_GEN | G_TEXTURE_GEN_LINEAR),
+    gsSPSetGeometryMode(G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_LIGHTING),
+    gsSPDisplayList(gfx_byrna_gi_mat_body),
+    gsSPDisplayList(gfx_somaria_cane_tri_give_0),
+    gsSPDisplayList(gfx_byrna_gi_mat_color),
+    gsSPDisplayList(gfx_somaria_cane_tri_give_1),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoMogmamittsDL[] = {
+    gsSPDisplayList(gMogmaMittsGiveDL),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoHyliagraceDL[] = {
+    gsSPDisplayList(gHyliaGraceGiveDL),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoZonaipermafrostDL[] = {
+    gsSPDisplayList(gZonaiPermafrostGiveDL),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoDemisedestructionDL[] = {
+    gsSPDisplayList(gDemiseDestructionGiveDL),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoBombarrowsDL[] = {
+    gsSPDisplayList(gBombarrowsGiveDL),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoTimegateDL[] = {
+    gsSPDisplayList(g_timegate_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoDesireSensorDL[] = {
+    gsSPDisplayList(g_desire_sensor_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoFirerodDL[] = {
+    gsSPDisplayList(g_fire_rod_give_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoIcerodDL[] = {
+    gsSPDisplayList(g_ice_rod_give_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoSwitchHookDL[] = {
+    gsSPDisplayList(g_switchhook_give_dl),
+    gsSPEndDisplayList(),
+};
+Gfx gRandoLightrodDL[] = {
+    gsSPDisplayList(g_light_rod_give_dl),
+    gsSPEndDisplayList(),
+};
+DEFINE_GREEN_CUBE_ITEM(Dominionrod)
+DEFINE_GREEN_CUBE_ITEM(Magnesis)
+DEFINE_GREEN_CUBE_ITEM(Stasis)
+DEFINE_GREEN_CUBE_ITEM(Cryonis)
+
+// All draw functions must be in extern "C" to work with OPEN_DISPS/CLOSE_DISPS macros
+extern "C" {
+
+// Helper: Generic rotating diamond renderer
+static void DrawCustomItemDiamond(PlayState* play, Gfx* displayList, f32 scale) {
+    OPEN_DISPS(play->state.gfxCtx);
+
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);
+
+    // Rotating animation
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPDisplayList(POLY_OPA_DISP++, displayList);
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+// All 24 draw functions (Skijer's custom items)
+void Randomizer_DrawRocsFeatherSkijer(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoRocsFeatherDL, 0.5f);
+}
+
+void Randomizer_DrawRocsCape(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoRocsCapeDL, 0.6f);
+}
+
+void Randomizer_DrawWhip(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, g_whip_give_dl, 0.5f);
+}
+
+void Randomizer_DrawSpinner(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoSpinnerDL, 0.3f);
+}
+
+void Randomizer_DrawBombArrows(PlayState* play, GetItemEntry* getItemEntry) {
+    OPEN_DISPS(play->state.gfxCtx);
+
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    Matrix_Scale(0.5f, 0.5f, 0.5f, MTXMODE_APPLY);
+
+    Matrix_RotateZ(M_PI, MTXMODE_APPLY);
+
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPDisplayList(POLY_OPA_DISP++, gRandoBombarrowsDL);
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void Randomizer_DrawFireRod(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoFirerodDL, 0.2f);
+}
+
+void Randomizer_DrawIceRod(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoIcerodDL, 0.2f);
+}
+
+void Randomizer_DrawLightRod(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoLightrodDL, 0.2f);
+}
+
+void Randomizer_DrawDekuLeaf(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoDekuLeafDL, 0.5f);
+}
+
+void Randomizer_DrawSwitchHook(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoSwitchHookDL, 0.01f);
+}
+
+void Randomizer_DrawMogmaMitts(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoMogmamittsDL, 0.5f);
+}
+
+void Randomizer_DrawGustJar(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoGustjarDL, 5.0f);
+}
+
+void Randomizer_DrawBallAndChain(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoBallandChainDL, 0.25f);
+}
+
+void Randomizer_DrawCaneOfSomaria(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoSomariaCaneDL, 0.25f);
+}
+
+void Randomizer_DrawDominionRod(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoDominionrodDL, 2.5f);
+}
+
+void Randomizer_DrawTimeGate(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoTimegateDL, 0.5f);
+}
+
+void Randomizer_DrawDesireSensor(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoDesireSensorDL, 0.5f);
+}
+
+void Randomizer_DrawBeetle(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoBeetleDL, 0.3f);
+}
+
+void Randomizer_DrawShovel(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gShovelGiveDL_opaque_dl, 0.2f);
+}
+
+void Randomizer_DrawHyliaGrace(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoHyliagraceDL, 1.0f);
+}
+
+void Randomizer_DrawZonaiPermafrost(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoZonaipermafrostDL, 1.0f);
+}
+
+void Randomizer_DrawDemiseDestruction(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoDemisedestructionDL, 1.0f);
+}
+
+void Randomizer_DrawMagnesis(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoMagnesisDL, 2.5f);
+}
+
+void Randomizer_DrawStasis(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoStasisDL, 2.5f);
+}
+
+void Randomizer_DrawLantern(PlayState* play, GetItemEntry* getItemEntry) {
+    // Poe Lantern model from object_poh — modeled at actor scale (~50-70u tall),
+    // drop to 1/40× to fit the get-item cylinder.
+    DrawCustomItemDiamond(play, (Gfx*)gPoeLanternDL, 0.025f);
+}
+
+void Randomizer_DrawCryonis(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, gRandoCryonisDL, 2.5f);
+}
+
+void Randomizer_DrawPokeball(PlayState* play, GetItemEntry* getItemEntry) {
+    // Vtx range is ±170 units (cull box), so model is ~340 native units across.
+    // Get-item cylinder is ~60 units, so 60/340 ≈ 0.18 fits.
+    DrawCustomItemDiamond(play, ItmPokeBall_opaque_dl, 0.18f);
+}
+
+void Randomizer_DrawMinishCap(PlayState* play, GetItemEntry* getItemEntry) {
+    DrawCustomItemDiamond(play, Cylinder_opaque_dl, 0.5f);
+}
+
+// =============================================================================
+// Extended Equipment Get-Item Draw
+// =============================================================================
+
+void Randomizer_DrawExtCaneOfByrna(PlayState* play, GetItemEntry* getItemEntry) {
+    // Blue Byrna cane (same mesh as Somaria, blue materials baked in DL)
+    DrawCustomItemDiamond(play, gRandoByrnaCaneGiveDL, 0.25f);
+}
+
+void Randomizer_DrawExtFourSword(PlayState* play, GetItemEntry* getItemEntry) {
+    // Kokiri Sword model with green tint (Four Sword = green Zelda sword)
+    OPEN_DISPS(play->state.gfxCtx);
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    Matrix_Scale(0.55f, 0.55f, 0.55f, MTXMODE_APPLY);
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPGrayscale(POLY_OPA_DISP++, true);
+    gDPSetGrayscaleColor(POLY_OPA_DISP++, 0, 180, 80, 255);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gGiKokiriSwordDL);
+    gSPGrayscale(POLY_OPA_DISP++, false);
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void Randomizer_DrawExtIronKnuckleAxe(PlayState* play, GetItemEntry* getItemEntry) {
+    // IK Axe model (from equip_ikaxe.c) — inline DL is in actor-space scale, native ~1/50×
+    DrawCustomItemDiamond(play, gIKAxeInlineDL, 0.02f);
+}
+
+void Randomizer_DrawExtDivineShield(PlayState* play, GetItemEntry* getItemEntry) {
+    // Hylian Shield model with golden tint (Divine Shield = holy gold variant)
+    OPEN_DISPS(play->state.gfxCtx);
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    Matrix_Scale(0.5f, 0.5f, 0.5f, MTXMODE_APPLY);
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPGrayscale(POLY_OPA_DISP++, true);
+    gDPSetGrayscaleColor(POLY_OPA_DISP++, 255, 215, 0, 255);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gGiHylianShieldDL);
+    gSPGrayscale(POLY_OPA_DISP++, false);
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void Randomizer_DrawExtSheikahShield(PlayState* play, GetItemEntry* getItemEntry) {
+    // Hylian Shield model with Sheikah teal/silver tint (Kite Shield)
+    OPEN_DISPS(play->state.gfxCtx);
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    Matrix_Scale(0.5f, 0.5f, 0.5f, MTXMODE_APPLY);
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPGrayscale(POLY_OPA_DISP++, true);
+    gDPSetGrayscaleColor(POLY_OPA_DISP++, 100, 200, 200, 255); // teal/silver Sheikah palette
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gGiHylianShieldDL);
+    gSPGrayscale(POLY_OPA_DISP++, false);
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+extern void* TransformMasks_LoadMmDL(const char* path);
+
+void Randomizer_DrawExtShieldOfIkana(PlayState* play, GetItemEntry* getItemEntry) {
+    // Use the same MM Mirror Shield model that the equipped Shield of Ikana renders with.
+    // ExtEquip_LoadMmShieldDLs in extended_equipment.c proves this path resolves cleanly in
+    // mm.o2r — using object_gi_shield_3/gGiMirrorShieldDL crashed because its vertex hashes
+    // didn't resolve in the OTR pack, and the unresolved bytes were executed as gsSPVertex.
+    static Gfx* sCachedMmShieldDL = NULL;
+    static u8 sLoadAttempted = 0;
+    if (!sLoadAttempted) {
+        sLoadAttempted = 1;
+        sCachedMmShieldDL = (Gfx*)TransformMasks_LoadMmDL("objects/object_link_child/gLinkHumanMirrorShieldDL");
+    }
+    if (sCachedMmShieldDL == NULL) {
+        return; // mm.o2r not present — silent skip instead of crashing on a NULL DL
+    }
+
+    OPEN_DISPS(play->state.gfxCtx);
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    // gLinkHumanMirrorShieldDL is modelled in arm-local space (oriented for Link's left arm
+    // joint). Apply order matters: RotateY first so the spin happens around world-up, THEN
+    // tilt -90° X so the shield ends up upright facing the camera, then scale down.
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+    Matrix_RotateX(-M_PI / 2.0f, MTXMODE_APPLY);
+    Matrix_Scale(0.035f, 0.035f, 0.035f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPDisplayList(POLY_OPA_DISP++, sCachedMmShieldDL);
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void Randomizer_DrawExtMagicCape(PlayState* play, GetItemEntry* getItemEntry) {
+    // Tunic model with red/purple tint (Magic Cape = LTTP magic cape)
+    OPEN_DISPS(play->state.gfxCtx);
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPGrayscale(POLY_OPA_DISP++, true);
+    gDPSetGrayscaleColor(POLY_OPA_DISP++, 180, 40, 120, 255);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gGiTunicCollarDL);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gGiTunicDL);
+    gSPGrayscale(POLY_OPA_DISP++, false);
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void Randomizer_DrawExtSpiritBreastplate(PlayState* play, GetItemEntry* getItemEntry) {
+    // Spirit Breastplate: chest + pauldrons composite model.
+    // Native model is in IK-axe coordinate space (huge units). Bumped 0.005 → 0.02 so
+    // the chest is actually visible in the get-item cylinder.
+    OPEN_DISPS(play->state.gfxCtx);
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    Matrix_Scale(0.02f, 0.02f, 0.02f, MTXMODE_APPLY);
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+
+    // Chest plate (center)
+    Matrix_Push();
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gSpiritChestDL);
+    Matrix_Pop();
+
+    // Right pauldron
+    Matrix_Push();
+    Matrix_Translate(1900.0f, 0.0f, -1184.0f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gSpiritPauldronRDL);
+    Matrix_Pop();
+
+    // Left pauldron
+    Matrix_Push();
+    Matrix_Translate(1900.0f, 0.0f, 1184.0f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gSpiritPauldronLDL);
+    Matrix_Pop();
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void Randomizer_DrawExtChampionsTunic(PlayState* play, GetItemEntry* getItemEntry) {
+    // Tunic model with BotW champion blue
+    OPEN_DISPS(play->state.gfxCtx);
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPGrayscale(POLY_OPA_DISP++, true);
+    gDPSetGrayscaleColor(POLY_OPA_DISP++, 0, 120, 215, 255);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gGiTunicCollarDL);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gGiTunicDL);
+    gSPGrayscale(POLY_OPA_DISP++, false);
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void Randomizer_DrawExtPegasusAnklet(PlayState* play, GetItemEntry* getItemEntry) {
+    // Hover Boots model with red tint (Pegasus = red winged boots)
+    OPEN_DISPS(play->state.gfxCtx);
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    Matrix_Scale(0.45f, 0.45f, 0.45f, MTXMODE_APPLY);
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPGrayscale(POLY_OPA_DISP++, true);
+    gDPSetGrayscaleColor(POLY_OPA_DISP++, 220, 40, 40, 255);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gGiHoverBootsDL);
+    gSPGrayscale(POLY_OPA_DISP++, false);
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void Randomizer_DrawExtPendantOfMemories(PlayState* play, GetItemEntry* getItemEntry) {
+    // MM Pendant of Memories GI model (from mm.o2r) — original DL is small, scale up to fill cylinder
+    OPEN_DISPS(play->state.gfxCtx);
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    Matrix_Scale(0.9f, 0.9f, 0.9f, MTXMODE_APPLY);
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)"__OTR__objects/object_gi_reserve_c_01/gGiPendantOfMemoriesDL");
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void Randomizer_DrawExtWaterDragonScale(PlayState* play, GetItemEntry* getItemEntry) {
+    // Scale model (gGiScaleDL) only, no water effect, with blue tint
+    OPEN_DISPS(play->state.gfxCtx);
+
+    Gfx_SetupDL_25Xlu(play->state.gfxCtx);
+
+    gSPSegment(POLY_XLU_DISP++, 0x08,
+               (uintptr_t)Gfx_TwoTexScrollEx(play->state.gfxCtx, 0, 1 * (play->state.frames * 2),
+                                             -1 * (play->state.frames * 2), 64, 64, 1, 1 * (play->state.frames * 4),
+                                             -1 * (play->state.frames * 4), 32, 32, 2, -2, 4, -4));
+
+    gSPMatrix(POLY_XLU_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_MODELVIEW | G_MTX_LOAD);
+
+    gSPGrayscale(POLY_XLU_DISP++, true);
+    gDPSetGrayscaleColor(POLY_XLU_DISP++, 40, 120, 220, 255);
+    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)gGiScaleDL);
+    gSPGrayscale(POLY_XLU_DISP++, false);
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+// =============================================================================
+// MM Mask Get-Item Draw (all 24 masks from mm.o2r)
+// =============================================================================
+
+typedef enum {
+    MM_MASK_DRAW_OPA0_XLU1 = 0, // DL1=Opa, DL2=Xlu (like GetItem_DrawOpa0Xlu1)
+    MM_MASK_DRAW_OPA01 = 1,     // Both Opa (like GetItem_DrawOpa01)
+} MmMaskDrawMode;
+
+typedef struct {
+    const char* dl1;
+    const char* dl2;
+    MmMaskDrawMode mode;
+} MmMaskDrawEntry;
+
+// Table indexed by (itemId - ITEM_MM_MASK_POSTMAN)
+// Order MUST match ITEM_MM_MASK_POSTMAN(0xB7) through ITEM_MM_MASK_FIERCE_DEITY(0xCE)
+static MmMaskDrawEntry sMmMaskDrawTable[] = {
+    /* POSTMAN       */ { gGiPostmanHatCapDL, gGiPostmanHatBunnyLogoDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* ALL_NIGHT     */ { gGiAllNightMaskEyesDL, gGiAllNightMaskFaceDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* BLAST         */ { gGiBlastMaskEmptyDL, gGiBlastMaskDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* STONE         */ { gGiStoneMaskEmptyDL, gGiStoneMaskDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* GREAT_FAIRY   */ { gGiGreatFairyMaskFaceDL, gGiGreatFairyMaskLeavesDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* DEKU          */ { gGiDekuMaskEmptyDL, gGiDekuMaskDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* KEATON        */ { gGiKeatonMaskDL, gGiKeatonMaskEyesDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* BREMEN        */ { gGiBremenMaskEmptyDL, gGiBremenMaskDL, MM_MASK_DRAW_OPA01 },
+    /* BUNNY         */ { gGiBunnyHoodDL, gGiBunnyHoodEyesDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* DON_GERO      */ { gGiDonGeroMaskFaceDL, gGiDonGeroMaskBodyDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* SCENTS        */ { gGiMaskOfScentsFaceDL, gGiMaskOfScentsTeethDL, MM_MASK_DRAW_OPA01 },
+    /* GORON         */ { gGiGoronMaskEmptyDL, gGiGoronMaskDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* ROMANI        */ { gGiRomaniMaskCapDL, gGiRomaniMaskNoseEyeDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* CIRCUS_LEADER */ { gGiCircusLeaderMaskEyebrowsDL, gGiCircusLeaderMaskFaceDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* KAFEI         */ { gGiKafeiMaskEmptyDL, gGiKafeiMaskDL, MM_MASK_DRAW_OPA01 },
+    /* COUPLE        */ { gGiCouplesMaskFullDL, gGiCouplesMaskHalfDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* TRUTH         */ { gGiMaskOfTruthDL, gGiMaskOfTruthAccentsDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* ZORA          */ { gGiZoraMaskEmptyDL, gGiZoraMaskDL, MM_MASK_DRAW_OPA01 },
+    /* KAMARO        */ { gGiKamaroMaskDL, gGiKamaroMaskEmptyDL, MM_MASK_DRAW_OPA01 },
+    /* GIBDO         */ { gGiGibdoMaskEmptyDL, gGiGibdoMaskDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* GARO          */ { gGiGarosMaskCloakDL, gGiGarosMaskFaceDL, MM_MASK_DRAW_OPA0_XLU1 },
+    /* CAPTAIN       */ { gGiCaptainsHatBodyDL, gGiCaptainsHatFaceDL, MM_MASK_DRAW_OPA01 },
+    /* GIANT         */ { gGiGiantMaskEmptyDL, gGiGiantMaskDL, MM_MASK_DRAW_OPA01 },
+    /* FIERCE_DEITY  */ { gGiFierceDeityMaskFaceDL, gGiFierceDeityMaskHairAndHatDL, MM_MASK_DRAW_OPA01 },
+};
+
+void Randomizer_DrawMmMask(PlayState* play, GetItemEntry* getItemEntry) {
+    if (!MmAssets_IsAvailable())
+        return;
+
+    u16 index = getItemEntry->itemId - ITEM_MM_MASK_POSTMAN;
+    if (index >= ARRAY_COUNT(sMmMaskDrawTable))
+        return;
+
+    MmMaskDrawEntry* entry = &sMmMaskDrawTable[index];
+
+    OPEN_DISPS(play->state.gfxCtx);
+
+    if (entry->mode == MM_MASK_DRAW_OPA0_XLU1) {
+        // DL1: Opaque, DL2: Translucent (like MM GetItem_DrawOpa0Xlu1)
+        Gfx_SetupDL_25Opa(play->state.gfxCtx);
+        gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+                  G_MTX_MODELVIEW | G_MTX_LOAD);
+        gSPDisplayList(POLY_OPA_DISP++, (Gfx*)entry->dl1);
+
+        Gfx_SetupDL_25Xlu(play->state.gfxCtx);
+        gSPMatrix(POLY_XLU_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+                  G_MTX_MODELVIEW | G_MTX_LOAD);
+        gSPDisplayList(POLY_XLU_DISP++, (Gfx*)entry->dl2);
+    } else {
+        // Both DLs: Opaque (like MM GetItem_DrawOpa01)
+        Gfx_SetupDL_25Opa(play->state.gfxCtx);
+        gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+                  G_MTX_MODELVIEW | G_MTX_LOAD);
+        gSPDisplayList(POLY_OPA_DISP++, (Gfx*)entry->dl1);
+        gSPDisplayList(POLY_OPA_DISP++, (Gfx*)entry->dl2);
+    }
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+// =============================================================================
+// Chateau Romani Bottle Get-Item Draw (from mm.o2r)
+// Uses GetItem_DrawOpa0Xlu1 pattern: DL1=Opa (empty bottle), DL2=Xlu (liquid fill)
+// =============================================================================
+
+void Randomizer_DrawChateauRomani(PlayState* play, GetItemEntry* getItemEntry) {
+    if (!MmAssets_IsAvailable())
+        return;
+
+    OPEN_DISPS(play->state.gfxCtx);
+
+    // DL1: Opaque (empty bottle shape)
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_MODELVIEW | G_MTX_LOAD);
+    gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gGiChateauRomaniBottleEmptyDL);
+
+    // DL2: Translucent (liquid fill + label)
+    Gfx_SetupDL_25Xlu(play->state.gfxCtx);
+    gSPMatrix(POLY_XLU_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_MODELVIEW | G_MTX_LOAD);
+    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)gGiChateauRomaniBottleDL);
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+// =============================================================================
+// Bottle with Magic Mushroom — Get-Item Draw (Mask of Scents reward)
+// Reuses OOT's Odd Mushroom DL (loaded via OTR path) on a vanilla bottle base.
+// =============================================================================
+void Randomizer_DrawBottleWithMagicMushroom(PlayState* play, GetItemEntry* getItemEntry) {
+    Gfx* mushroomDL = (Gfx*)ResourceMgr_LoadGfxByName("__OTR__objects/object_gi_mushroom/gGiOddMushroomDL");
+    if (mushroomDL == NULL || ((const char*)mushroomDL)[0] == '_') {
+        return;
+    }
+
+    OPEN_DISPS(play->state.gfxCtx);
+
+    Gfx_SetupDL_25Opa(play->state.gfxCtx);
+
+    // Subtle rotation (matches DrawCustomItemDiamond pattern).
+    s16 rotation = play->gameplayFrames * 0x2;
+    Matrix_RotateY(rotation * 0.01f, MTXMODE_APPLY);
+    Matrix_Scale(0.8f, 0.8f, 0.8f, MTXMODE_APPLY);
+
+    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPDisplayList(POLY_OPA_DISP++, mushroomDL);
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+} // extern "C"

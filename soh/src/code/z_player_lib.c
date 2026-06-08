@@ -10,8 +10,17 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/randomizer/draw.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "mods/items/custom_items.h"
+#include "mods/extended_player.h"
+#include "mods/extended_equipment.h"
+#include "mods/items/logic/item_mitts.h"
+#include "mods/transformation_masks/transformation_masks.h"
+#include "mods/transformation_masks/gerudo_form.h"
+#include "mods/pak_loader/pak_loader.h"
 
 #include <stdlib.h>
+
+// SW97: Forward declaration - defined in sw97_player_hooks.c (compiled in z_player.c TU)
 
 typedef struct {
     /* 0x00 */ u8 flag;
@@ -102,7 +111,8 @@ u8 sActionModelGroups[] = {
     PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_MASK_ZORA
     PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_MASK_GERUDO
     PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_MASK_TRUTH
-    PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_LENS_OF_TRUTH
+    PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_LENS_OF_TRUTH (0x42 = 66)
+    // Custom items (0x43+) are handled by ExtPlayer_GetActionModelGroup() in extended_player.c
 };
 
 TextTriggerEntry sTextTriggers[] = {
@@ -493,10 +503,77 @@ void Player_SetBootData(PlayState* play, Player* this) {
     if (play->roomCtx.curRoom.behaviorType1 == ROOM_BEHAVIOR_TYPE1_2) {
         REG(45) = 500;
     }
+
+    // MM transformation boot data override.
+    // Each MM form has unique boot physics (from 2Ship z_player_lib.c D_801BFE14).
+    // MM boot data mapped to OOT's REG layout (17 entries, same order as sBootData).
+    // Key differences from Human/Hylian (OOT default):
+    //   FD: R_RUN_SPEED_LIMIT=1000 (vs 550), faster accel curve
+    //   Goron: R_RUN_SPEED_LIMIT=600, REG(68)=-140 (heavier gravity)
+    //   Zora/Deku: R_RUN_SPEED_LIMIT=600
+    if (TransformMasks_IsTransformed()) {
+        extern s32 MmForm_GetCurrentForm(void);
+        s32 form = MmForm_GetCurrentForm();
+
+        // OOT sBootData format: REG(19,30,32,34,35,36,37,38), REG(43), REG(45),
+        //                       REG(68,69), IREG(66,67,68,69), MREG(95)
+        static const s16 sMmBootData[][17] = {
+            // FIERCE_DEITY (form 0) — from MM PLAYER_BOOTS_FIERCE_DEITY
+            { 200, 666, 200, 700, 366, 200, 600, 175, 800, 1000, -100, 600, 590, 800, 125, 300, 65 },
+            // GORON (form 1) — from MM PLAYER_BOOTS_GORON
+            { 200, 1000, 300, 700, 550, 270, 700, 200, 800, 600, -140, 600, 590, 750, 125, 200, 130 },
+            // ZORA (form 2) — from MM PLAYER_BOOTS_ZORA_LAND
+            { 200, 1000, 300, 700, 550, 270, 700, 300, 800, 600, -100, 600, 590, 750, 125, 200, 130 },
+            // DEKU (form 3) — from MM PLAYER_BOOTS_DEKU
+            { 200, 1000, 300, 700, 550, 270, 600, 1000, 800, 600, -100, 600, 590, 750, 125, 200, 130 },
+            // HUMAN (form 4) — no override needed, uses OOT defaults
+            { 200, 1000, 300, 700, 550, 270, 600, 350, 800, 600, -100, 600, 590, 750, 125, 200, 130 },
+            // PIKACHU (form 5) — same as FD (fast movement)
+            { 200, 666, 200, 700, 366, 200, 600, 175, 800, 1000, -100, 600, 590, 800, 125, 300, 65 },
+        };
+
+        if (form >= 0 && form <= 5 && form != 4) {
+            const s16* bd = sMmBootData[form];
+            REG(19) = bd[0];
+            REG(30) = bd[1];
+            REG(32) = bd[2];
+            REG(34) = bd[3];
+            REG(35) = bd[4];
+            REG(36) = bd[5];
+            REG(37) = bd[6];
+            REG(38) = bd[7];
+            REG(43) = bd[8];
+            REG(45) = bd[9];
+            REG(68) = bd[10];
+            REG(69) = bd[11];
+            IREG(66) = bd[12];
+            IREG(67) = bd[13];
+            IREG(68) = bd[14];
+            IREG(69) = bd[15];
+            MREG(95) = bd[16];
+        }
+
+        // R_RUN_SPEED_LIMIT: MM stores separately, OOT doesn't have a boot-data entry.
+        // Override it here based on form.
+        if (form == 0 || form == 5) {
+            R_RUN_SPEED_LIMIT = 1000; // FD and Pikachu
+        } else if (form >= 1 && form <= 3) {
+            R_RUN_SPEED_LIMIT = 600; // Goron, Zora, Deku
+        }
+    }
 }
 
 // Custom method used to determine if we're using a custom model for link
 uint8_t Player_IsCustomLinkModel() {
+    // Gerudo Form: treat the gerudo-rigged skel as a custom Link model. This
+    // skips the vanilla hardcoded WAIST/HEAD/hand overrides in
+    // Player_OverrideLimbDrawGameplayDefault, so the gerudo limb's own DL
+    // (e.g. gLinkAdultSkel_layer_Opaque for the torso, bone010_* for the
+    // head, etc.) stays as the renderer's choice instead of being clobbered
+    // by Link's vanilla belt/eyes/closed-hand DLs.
+    if (GerudoForm_IsActive()) {
+        return 1;
+    }
     return (LINK_IS_ADULT && ResourceGetIsCustomByName(gLinkAdultSkel)) ||
            (LINK_IS_CHILD && ResourceGetIsCustomByName(gLinkChildSkel));
 }
@@ -530,7 +607,7 @@ s32 Player_IsChildWithHylianShield(Player* this) {
 }
 
 s32 Player_ActionToModelGroup(Player* this, s32 actionParam) {
-    s32 modelGroup = sActionModelGroups[actionParam];
+    s32 modelGroup = ExtPlayer_GetActionModelGroup(actionParam);
 
     if ((modelGroup == PLAYER_MODELGROUP_SWORD_AND_SHIELD) && Player_IsChildWithHylianShield(this)) {
         // child, using kokiri sword with hylian shield equipped
@@ -579,6 +656,14 @@ void Player_SetModels(Player* this, s32 modelGroup) {
     // Left hand
     this->leftHandType = gPlayerModelTypes[modelGroup][PLAYER_MODELGROUPENTRY_LEFT_HAND];
     this->leftHandDLists = &sPlayerDListGroups[this->leftHandType][gSaveContext.linkAge];
+
+    // Custom rods: Override left hand to use closed fist instead of BGS sword model
+    // The rod visual is drawn separately in CustomItems_Draw functions
+    if (this->heldItemAction == PLAYER_IA_ROD_FIRE || this->heldItemAction == PLAYER_IA_ROD_ICE ||
+        this->heldItemAction == PLAYER_IA_ROD_LIGHT) {
+        this->leftHandType = PLAYER_MODELTYPE_LH_CLOSED;
+        this->leftHandDLists = &sPlayerDListGroups[PLAYER_MODELTYPE_LH_CLOSED][gSaveContext.linkAge];
+    }
 
     if (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) {
         if (LINK_IS_CHILD &&
@@ -780,6 +865,37 @@ s32 Player_GetStrength(void) {
         return PLAYER_STR_NONE;
     }
 
+    // Transformed forms have an INTRINSIC body strength independent of the player's
+    // upgrade bits. We compute it virtually here instead of mutating
+    // gSaveContext.inventory.upgrades on transform — that prior approach broke
+    // randomizer / pickup scenarios:
+    //   1. As Goron (override=GoldG, save bits=GoldG), the player picks up a
+    //      strength upgrade. Inventory_ChangeUpgrade overwrites the bits with the
+    //      pickup's level (e.g. Bracelet=1), DOWNGRADING Goron's lift power.
+    //   2. On detransform, the prior "restore to savedStrength" path snapped the
+    //      bits back to the pre-transform value, deleting the pickup.
+    // Returning the form's strength virtually lets the save bits track only what
+    // the player actually earned, and the form's body strength is applied per call.
+    // Item equipping is unaffected: those gates live in CHECK_AGE_REQ_* and
+    // inventory ownership checks, not here. Also covers Child Link transforms
+    // (the original Child age cap below doesn't apply when transformed).
+    if (TransformMasks_IsTransformed()) {
+        switch (MmForm_GetCurrentForm()) {
+            case 0 /* MM_PLAYER_FORM_FIERCE_DEITY */:
+                return PLAYER_STR_GOLD_G;
+            case 1 /* MM_PLAYER_FORM_GORON */:
+                return PLAYER_STR_GOLD_G;
+            case 2 /* MM_PLAYER_FORM_ZORA */:
+                return PLAYER_STR_BRACELET;
+            case 3 /* MM_PLAYER_FORM_DEKU */:
+                return PLAYER_STR_NONE;
+            // Pikachu (5) and anything else falls through to the normal path,
+            // so the player's real upgrade applies (no override).
+            default:
+                break;
+        }
+    }
+
     if (CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0) || LINK_IS_ADULT) {
         return strengthUpgrade;
     } else if (strengthUpgrade != 0) {
@@ -854,21 +970,47 @@ s32 Player_ActionToMeleeWeapon(s32 actionParam) {
 
     if ((sword > 0) && (sword < 6)) {
         return sword;
-    } else {
-        return 0;
     }
+
+    // Custom melee weapons (Fire Rod, Ice Rod, Light Rod) - treated as Deku Stick (4)
+    if (actionParam == PLAYER_IA_ROD_FIRE || actionParam == PLAYER_IA_ROD_ICE || actionParam == PLAYER_IA_ROD_LIGHT) {
+        return 4; // Same as PLAYER_IA_DEKU_STICK
+    }
+
+    return 0;
 }
 
 s32 Player_GetMeleeWeaponHeld(Player* this) {
+    // Transformation masks: block sword swings for all forms except Fierce Deity.
+    // Non-FD forms use form-specific B-button actions (punch, bubble, etc.).
+    if (TransformMasks_IsTransformed() && !TransformMasks_IsFDSkinMode()) {
+        return 0;
+    }
+    // FD skin mode: always return BGS melee weapon index (3) when holding any sword.
+    // This gives FD BGS-equivalent damage flags, sword reach (5500), and sword trail type
+    // without forcing heldItemAction (which causes equip/unequip animation loops).
+    // Player_ActionToMeleeWeapon(PLAYER_IA_SWORD_BIGGORON) = 5 - 2 = 3
+    if (TransformMasks_IsFDSkinMode() && Player_ActionToMeleeWeapon(this->heldItemAction) > 0) {
+        return Player_ActionToMeleeWeapon(PLAYER_IA_SWORD_BIGGORON); // 3
+    }
     return Player_ActionToMeleeWeapon(this->heldItemAction);
 }
 
 s32 Player_HoldsTwoHandedWeapon(Player* this) {
+    // FD skin mode: FD's sword is two-handed (like BGS) regardless of actual equipped sword.
+    // This disables shield usage and enables two-handed attack patterns.
+    if (TransformMasks_IsFDSkinMode() && Player_ActionToMeleeWeapon(this->heldItemAction) > 0) {
+        return 1;
+    }
     if ((this->heldItemAction >= PLAYER_IA_SWORD_BIGGORON) && (this->heldItemAction <= PLAYER_IA_HAMMER)) {
         return 1;
-    } else {
-        return 0;
     }
+    // Custom rods use two-handed weapon mechanics (BGS-style spin attack)
+    if (this->heldItemAction == PLAYER_IA_ROD_FIRE || this->heldItemAction == PLAYER_IA_ROD_ICE ||
+        this->heldItemAction == PLAYER_IA_ROD_LIGHT) {
+        return 1;
+    }
+    return 0;
 }
 
 s32 Player_HoldsBrokenKnife(Player* this) {
@@ -1047,7 +1189,14 @@ void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dL
         eyeIndex = 7;
 
 #if defined(MODDING) || defined(_MSC_VER) || defined(__GNUC__)
-    gSPSegment(POLY_OPA_DISP++, 0x08, SEGMENTED_TO_VIRTUAL(sEyeTextures[gSaveContext.linkAge][eyeIndex]));
+    {
+        void* pakEye = PakLoader_GetEyeTexture(eyeIndex);
+        if (pakEye) {
+            gSPSegment(POLY_OPA_DISP++, 0x08, (uintptr_t)pakEye);
+        } else {
+            gSPSegment(POLY_OPA_DISP++, 0x08, SEGMENTED_TO_VIRTUAL(sEyeTextures[gSaveContext.linkAge][eyeIndex]));
+        }
+    }
 #else
     gSPSegment(POLY_OPA_DISP++, 0x08, SEGMENTED_TO_VIRTUAL(sEyeTextures[eyeIndex]));
 #endif
@@ -1059,7 +1208,14 @@ void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dL
         mouthIndex = 3;
 
 #if defined(MODDING) || defined(_MSC_VER) || defined(__GNUC__)
-    gSPSegment(POLY_OPA_DISP++, 0x09, SEGMENTED_TO_VIRTUAL(sMouthTextures[gSaveContext.linkAge][mouthIndex]));
+    {
+        void* pakMouth = PakLoader_GetMouthTexture(mouthIndex);
+        if (pakMouth) {
+            gSPSegment(POLY_OPA_DISP++, 0x09, (uintptr_t)pakMouth);
+        } else {
+            gSPSegment(POLY_OPA_DISP++, 0x09, SEGMENTED_TO_VIRTUAL(sMouthTextures[gSaveContext.linkAge][mouthIndex]));
+        }
+    }
 #else
     gSPSegment(POLY_OPA_DISP++, 0x09, SEGMENTED_TO_VIRTUAL(sMouthTextures[eyeIndex]));
 #endif
@@ -1077,6 +1233,16 @@ void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dL
         color = &sTemp;
     }
 
+    // Champion's Tunic (Ext Tunic 3): BotW blue #38b6f1
+    if (ExtEquip_IsEnabled() && ExtEquip_GetCurrent(EQUIP_TYPE_TUNIC) == 3) {
+        sTemp.r = 56;
+        sTemp.g = 182;
+        sTemp.b = 241;
+        color = &sTemp;
+    }
+
+    // Spirit Breastplate (Ext Tunic 2): armor drawn separately in PostLimbDraw, tunic color unchanged
+
     if (GameInteractor_Should(VB_APPLY_TUNIC_COLOR, true, data, color)) {
         gDPSetEnvColor(POLY_OPA_DISP++, color->r, color->g, color->b, 0);
     }
@@ -1088,7 +1254,12 @@ void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dL
 
     sDListsLodOffset = lod * 2;
 
-    SkelAnime_DrawFlexLod(play, skeleton, jointTable, dListCount, overrideLimbDraw, postLimbDraw, data, lod);
+    // VB_PLAYER_DRAW: subscribers can suppress vanilla Link rendering by
+    // returning false (e.g. Harpoon's Prop Hunt hider draws as a prop and
+    // wants to hide Link entirely). Default keeps vanilla draw on.
+    if (GameInteractor_Should(VB_PLAYER_DRAW, true, play, data)) {
+        SkelAnime_DrawFlexLod(play, skeleton, jointTable, dListCount, overrideLimbDraw, postLimbDraw, data, lod);
+    }
 
     if (((CVarGetInteger(CVAR_ENHANCEMENT("FirstPersonGauntlets"), 0) && LINK_IS_ADULT) ||
          (overrideLimbDraw != Player_OverrideLimbDrawGameplayFirstPerson)) &&
@@ -1097,15 +1268,21 @@ void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dL
         if (LINK_IS_ADULT) {
             s32 strengthUpgrade = CUR_UPG_VALUE(UPG_STRENGTH);
 
-            if (strengthUpgrade >= 2) { // silver or gold gauntlets
+            // Mogma Mitts: force white gauntlets visible even without strength upgrade
+            if (gMogmaMittsForceGauntlets || strengthUpgrade >= 2) {
                 gDPPipeSync(POLY_OPA_DISP++);
 
-                color = &sGauntletColors[strengthUpgrade - 2];
-                if (strengthUpgrade == PLAYER_STR_SILVER_G &&
+                // Mogma Mitts always uses white (silver) gauntlets
+                if (gMogmaMittsForceGauntlets) {
+                    color = &sGauntletColors[0]; // White/silver color
+                } else {
+                    color = &sGauntletColors[strengthUpgrade - 2];
+                }
+                if (!gMogmaMittsForceGauntlets && strengthUpgrade == PLAYER_STR_SILVER_G &&
                     CVarGetInteger(CVAR_COSMETIC("Gloves.SilverGauntlets.Changed"), 0)) {
                     sTemp = CVarGetColor24(CVAR_COSMETIC("Gloves.SilverGauntlets.Value"), *color);
                     color = &sTemp;
-                } else if (strengthUpgrade == PLAYER_STR_GOLD_G &&
+                } else if (!gMogmaMittsForceGauntlets && strengthUpgrade == PLAYER_STR_GOLD_G &&
                            CVarGetInteger(CVAR_COSMETIC("Gloves.GoldenGauntlets.Changed"), 0)) {
                     sTemp = CVarGetColor24(CVAR_COSMETIC("Gloves.GoldenGauntlets.Value"), *color);
                     color = &sTemp;
@@ -1129,7 +1306,23 @@ void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dL
                 gSPDisplayList(POLY_OPA_DISP++, bootDLists[1]);
             }
         } else {
-            if (Player_GetStrength() > PLAYER_STR_NONE) {
+            // Child Link
+            if (gMogmaMittsForceGauntlets) {
+                // Mogma Mitts: force white gauntlets visible on child Link too
+                // Use adult gauntlet models scaled for child
+                gDPPipeSync(POLY_OPA_DISP++);
+                color = &sGauntletColors[0]; // White/silver color
+                gDPSetEnvColor(POLY_OPA_DISP++, color->r, color->g, color->b, 0);
+
+                gSPDisplayList(POLY_OPA_DISP++, gLinkAdultLeftGauntletPlate1DL);
+                gSPDisplayList(POLY_OPA_DISP++, gLinkAdultRightGauntletPlate1DL);
+                gSPDisplayList(POLY_OPA_DISP++, (sLeftHandType == PLAYER_MODELTYPE_LH_OPEN)
+                                                    ? gLinkAdultLeftGauntletPlate2DL
+                                                    : gLinkAdultLeftGauntletPlate3DL);
+                gSPDisplayList(POLY_OPA_DISP++, (sRightHandType == PLAYER_MODELTYPE_RH_OPEN)
+                                                    ? gLinkAdultRightGauntletPlate2DL
+                                                    : gLinkAdultRightGauntletPlate3DL);
+            } else if (Player_GetStrength() > PLAYER_STR_NONE) {
                 gSPDisplayList(POLY_OPA_DISP++, gLinkChildGoronBraceletDL);
             }
         }
@@ -1363,75 +1556,160 @@ s32 Player_OverrideLimbDrawGameplayCommon(PlayState* play, s32 limbIndex, Gfx** 
     return false;
 }
 
+// Defined in soh/Network/Harpoon/HarpoonSkinSync.cpp. Inline forward decl
+// avoids dragging the C++ header (with its <string>/<vector> stuff) into
+// every TU that includes z_player_lib.c via the unity build. Returns the
+// override-or-patched-vanilla Gfx* for `otrPath` during a Harpoon dummy
+// draw, or NULL otherwise — caller must fall through to its normal
+// ResourceMgr_LoadGfxByName path on NULL.
+extern void* HarpoonSkinSync_ResolvePlayerLimbDL(const char* otrPath);
+
+// Helper for the four hand/sheath/waist branches below: if Harpoon's dummy
+// draw is active and we have the path cached, hand back the override /
+// patched-vanilla Gfx* directly instead of going through the global
+// ArchiveManager (which would return the LOCAL user's modded bytecode and
+// paint it onto the remote dummy).
+static Gfx* Player_ResolveLimbDLForDummyOrLocal(void* dlPathOrPtr) {
+    Gfx* harpoonDL = (Gfx*)HarpoonSkinSync_ResolvePlayerLimbDL((const char*)dlPathOrPtr);
+    if (harpoonDL != NULL) {
+        return harpoonDL;
+    }
+    return ResourceMgr_LoadGfxByName(dlPathOrPtr);
+}
+
 s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot,
                                            void* thisx) {
     Player* this = (Player*)thisx;
 
     if (!Player_OverrideLimbDrawGameplayCommon(play, limbIndex, dList, pos, rot, thisx)) {
-        if (limbIndex == PLAYER_LIMB_L_HAND) {
-            Gfx** dLists = this->leftHandDLists;
-
-            if ((sLeftHandType == PLAYER_MODELTYPE_LH_BGS) && (gSaveContext.swordHealth <= 0.0f)) {
-                dLists += 4;
-            } else if ((sLeftHandType == PLAYER_MODELTYPE_LH_BOOMERANG) &&
-                       (this->stateFlags1 & PLAYER_STATE1_BOOMERANG_THROWN)) {
-                dLists = &gPlayerLeftHandOpenDLs[gSaveContext.linkAge];
-                sLeftHandType = PLAYER_MODELTYPE_LH_OPEN;
-            } else if ((this->leftHandType == PLAYER_MODELTYPE_LH_OPEN) && (this->actor.speedXZ > 2.0f) &&
-                       !(this->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
-                dLists = &gPlayerLeftHandClosedDLs[gSaveContext.linkAge];
-                sLeftHandType = PLAYER_MODELTYPE_LH_CLOSED;
-            }
-
-            *dList = ResourceMgr_LoadGfxByName(dLists[sDListsLodOffset]);
-        } else if (limbIndex == PLAYER_LIMB_R_HAND) {
-            Gfx** dLists = this->rightHandDLists;
-
-            if (sRightHandType == PLAYER_MODELTYPE_RH_SHIELD) {
-                dLists += this->currentShield * 4;
-            } else if ((this->rightHandType == PLAYER_MODELTYPE_RH_OPEN) && (this->actor.speedXZ > 2.0f) &&
-                       !(this->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
-                dLists = &sPlayerRightHandClosedDLs[gSaveContext.linkAge];
-                sRightHandType = PLAYER_MODELTYPE_RH_CLOSED;
-            }
-
-            *dList = ResourceMgr_LoadGfxByName(dLists[sDListsLodOffset]);
-        } else if (limbIndex == PLAYER_LIMB_SHEATH) {
-            Gfx** dLists = this->sheathDLists;
-
-            if ((this->sheathType == PLAYER_MODELTYPE_SHEATH_18) || (this->sheathType == PLAYER_MODELTYPE_SHEATH_19)) {
-                dLists += this->currentShield * 4;
-                if (!LINK_IS_ADULT && (this->currentShield < PLAYER_SHIELD_HYLIAN) &&
-                    (gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KOKIRI)) {
-                    dLists += PLAYER_SHIELD_MAX * 4;
+        // Gerudo Form dual-wield: both hands hold a custom scimitar DL from
+        // gerudo.o2r. The shield slot stays empty (R-hand DL = second sword
+        // instead of a shield). Sheath is hidden — there's nothing to sheathe.
+        // Falls through to vanilla if the .o2r doesn't ship the DL (cosmetic
+        // miss, not a crash).
+        u8 gerudoHandled = 0;
+        if (GerudoForm_IsActive()) {
+            if (limbIndex == PLAYER_LIMB_L_HAND) {
+                Gfx* swordL = GerudoForm_GetSwordDL_L();
+                if (swordL != NULL) {
+                    *dList = swordL;
+                    gerudoHandled = 1;
                 }
-            } else if (!CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0) ||
-                       (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0) &&
-                        ((gSaveContext.equips.buttonItems[0] != ITEM_SWORD_MASTER &&
-                          gSaveContext.equips.buttonItems[0] != ITEM_SWORD_BGS) &&
-                         this->currentShield == PLAYER_SHIELD_DEKU))) {
-                if (!LINK_IS_ADULT &&
-                    ((this->sheathType == PLAYER_MODELTYPE_SHEATH_16) ||
-                     (this->sheathType == PLAYER_MODELTYPE_SHEATH_17)) &&
-                    (gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KOKIRI)) {
-                    dLists = &sSheathWithSwordDLs[PLAYER_SHIELD_MAX * 4];
+            } else if (limbIndex == PLAYER_LIMB_R_HAND) {
+                Gfx* swordR = GerudoForm_GetSwordDL_R();
+                if (swordR != NULL) {
+                    *dList = swordR;
+                    gerudoHandled = 1;
                 }
-            }
-
-            if (dLists[sDListsLodOffset] != NULL) {
-                *dList = ResourceMgr_LoadGfxByName(dLists[sDListsLodOffset]);
-            } else {
-                *dList = NULL;
-            }
-
-        } else if (limbIndex == PLAYER_LIMB_WAIST) {
-
-            if (!Player_IsCustomLinkModel()) {
-                *dList = ResourceMgr_LoadGfxByName(
-                    this->waistDLists[sDListsLodOffset]); // NOTE: This needs to be disabled when using custom
-                                                          // characters - they're not going to have LODs anyways...
+            } else if (limbIndex == PLAYER_LIMB_SHEATH) {
+                *dList = NULL; // no sheath in Gerudo Form
+                gerudoHandled = 1;
             }
         }
+
+        // PAK Loader: When a custom model or equipment pak is active, try equipment DLs first.
+        // If GetEquipDL returns a DL or STUB, use it. If NULL, fall through to vanilla code.
+        if (!gerudoHandled) {
+            u8 pakHandled = 0;
+            if (PakLoader_HasActiveModel() && (limbIndex == PLAYER_LIMB_L_HAND || limbIndex == PLAYER_LIMB_R_HAND ||
+                                               limbIndex == PLAYER_LIMB_SHEATH || limbIndex == PLAYER_LIMB_WAIST)) {
+                Gfx* pakDL = PakLoader_GetEquipDL(this, limbIndex);
+                if (pakDL == PAK_DL_STUB) {
+                    *dList = NULL;
+                    pakHandled = 1;
+                } else if (pakDL != NULL) {
+                    *dList = pakDL;
+                    pakHandled = 1;
+                }
+                // pakDL == NULL for hands/sheath → fall through to vanilla for that limb
+                // pakDL == NULL for WAIST → skeleton swap already provides the custom DL, don't let vanilla overwrite
+                if (pakDL == NULL && limbIndex == PLAYER_LIMB_WAIST && PakLoader_GetSelectedIndex() >= 0) {
+                    pakHandled = 1; // Keep skeleton's custom waist DL
+                }
+            }
+            if (!pakHandled && limbIndex == PLAYER_LIMB_L_HAND) {
+                Gfx** dLists = this->leftHandDLists;
+
+                if ((sLeftHandType == PLAYER_MODELTYPE_LH_BGS) && (gSaveContext.swordHealth <= 0.0f)) {
+                    dLists += 4;
+                } else if ((sLeftHandType == PLAYER_MODELTYPE_LH_BOOMERANG) &&
+                           (this->stateFlags1 & PLAYER_STATE1_BOOMERANG_THROWN)) {
+                    dLists = &gPlayerLeftHandOpenDLs[gSaveContext.linkAge];
+                    sLeftHandType = PLAYER_MODELTYPE_LH_OPEN;
+                } else if ((this->leftHandType == PLAYER_MODELTYPE_LH_OPEN) && (this->actor.speedXZ > 2.0f) &&
+                           !(this->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
+                    dLists = &gPlayerLeftHandClosedDLs[gSaveContext.linkAge];
+                    sLeftHandType = PLAYER_MODELTYPE_LH_CLOSED;
+                }
+
+                // Extended equipment: hide sword DL when ext sword draws its own model
+                if (ExtEquip_ShouldHideSwordDL() &&
+                    (sLeftHandType != PLAYER_MODELTYPE_LH_OPEN && sLeftHandType != PLAYER_MODELTYPE_LH_CLOSED &&
+                     sLeftHandType != PLAYER_MODELTYPE_LH_BOOMERANG)) {
+                    dLists = &gPlayerLeftHandOpenDLs[gSaveContext.linkAge];
+                    sLeftHandType = PLAYER_MODELTYPE_LH_OPEN;
+                }
+                *dList = Player_ResolveLimbDLForDummyOrLocal(dLists[sDListsLodOffset]);
+            } else if (!pakHandled && limbIndex == PLAYER_LIMB_R_HAND) {
+                Gfx** dLists = this->rightHandDLists;
+
+                if (sRightHandType == PLAYER_MODELTYPE_RH_SHIELD) {
+                    if (ExtEquip_GetShieldDLOverride() != NULL) {
+                        // Shield of Ikana: show open hand, custom shield drawn in PostLimbDraw
+                        dLists = &sPlayerRightHandOpenDLs[gSaveContext.linkAge];
+                        sRightHandType = PLAYER_MODELTYPE_RH_OPEN;
+                    } else {
+                        dLists += this->currentShield * 4;
+                    }
+                } else if ((this->rightHandType == PLAYER_MODELTYPE_RH_OPEN) && (this->actor.speedXZ > 2.0f) &&
+                           !(this->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
+                    dLists = &sPlayerRightHandClosedDLs[gSaveContext.linkAge];
+                    sRightHandType = PLAYER_MODELTYPE_RH_CLOSED;
+                }
+
+                *dList = Player_ResolveLimbDLForDummyOrLocal(dLists[sDListsLodOffset]);
+            } else if (!pakHandled && limbIndex == PLAYER_LIMB_SHEATH) {
+                Gfx** dLists = this->sheathDLists;
+
+                if ((this->sheathType == PLAYER_MODELTYPE_SHEATH_18) ||
+                    (this->sheathType == PLAYER_MODELTYPE_SHEATH_19)) {
+                    if (ExtEquip_GetShieldDLOverride() != NULL) {
+                        dLists = &sSheathDLs[gSaveContext.linkAge];
+                    } else {
+                        dLists += this->currentShield * 4;
+                        if (!LINK_IS_ADULT && (this->currentShield < PLAYER_SHIELD_HYLIAN) &&
+                            (gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KOKIRI)) {
+                            dLists += PLAYER_SHIELD_MAX * 4;
+                        }
+                    }
+                } else if (!CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0) ||
+                           (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0) &&
+                            ((gSaveContext.equips.buttonItems[0] != ITEM_SWORD_MASTER &&
+                              gSaveContext.equips.buttonItems[0] != ITEM_SWORD_BGS) &&
+                             this->currentShield == PLAYER_SHIELD_DEKU))) {
+                    if (!LINK_IS_ADULT &&
+                        ((this->sheathType == PLAYER_MODELTYPE_SHEATH_16) ||
+                         (this->sheathType == PLAYER_MODELTYPE_SHEATH_17)) &&
+                        (gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KOKIRI)) {
+                        dLists = &sSheathWithSwordDLs[PLAYER_SHIELD_MAX * 4];
+                    }
+                }
+
+                if (dLists[sDListsLodOffset] != NULL) {
+                    *dList = Player_ResolveLimbDLForDummyOrLocal(dLists[sDListsLodOffset]);
+                } else {
+                    *dList = NULL;
+                }
+
+            } else if (!pakHandled && limbIndex == PLAYER_LIMB_WAIST) {
+
+                if (!Player_IsCustomLinkModel()) {
+                    *dList = Player_ResolveLimbDLForDummyOrLocal(
+                        this->waistDLists[sDListsLodOffset]); // NOTE: This needs to be disabled when using custom
+                                                              // characters - they're not going to have LODs anyways...
+                }
+            }
+        } // close pakHandled block
     }
 
     if (GameInteractor_InvisibleLinkActive()) {
@@ -1447,7 +1725,15 @@ s32 Player_OverrideLimbDrawGameplayFirstPerson(PlayState* play, s32 limbIndex, G
     Player* this = (Player*)thisx;
 
     if (!Player_OverrideLimbDrawGameplayCommon(play, limbIndex, dList, pos, rot, thisx)) {
-        if (this->unk_6AD != 2) {
+        if (TransformMasks_IsTransformed()) {
+            // Transformed: hide ALL limbs (including arm). Skeleton is still traversed
+            // so body part positions are calculated for hookshot chain, arrow spawn, etc.
+            *dList = NULL;
+        } else if (this->unk_6AD != 2) {
+            *dList = NULL;
+        } else if (!Player_HoldsHookshot(this) && !Player_HoldsBow(this) && !Player_HoldsSlingshot(this) &&
+                   this->heldItemAction != PLAYER_IA_BOMB_ARROWS) {
+            // Custom item in first-person mode - hide vanilla weapon/arm models
             *dList = NULL;
         } else if (limbIndex == PLAYER_LIMB_L_FOREARM) {
             *dList = sFirstPersonLeftForearmDLs[gSaveContext.linkAge];
@@ -1531,6 +1817,11 @@ void Player_UpdateShieldCollider(PlayState* play, Player* this, ColliderQuad* co
         Vec3f quadDest[4];
 
         this->shieldQuad.base.colType = shieldColTypes[this->currentShield];
+
+        // Divine Shield (Ext Shield 1): force COLTYPE_WOOD regardless of vanilla shield
+        if (DivineShield_IsWoodType()) {
+            this->shieldQuad.base.colType = COLTYPE_WOOD;
+        }
 
         Matrix_MultVec3f(&quadSrc[0], &quadDest[0]);
         Matrix_MultVec3f(&quadSrc[1], &quadDest[1]);
@@ -1681,6 +1972,19 @@ void func_80090A28(Player* this, Vec3f* vecs) {
     Matrix_MultVec3f(&D_80126098, &vecs[2]);
 }
 
+// Wrapper for FD melee weapon collision quads. Called from MmForm_PostLimbDraw at PLAYER_LIMB_L_HAND.
+// FD skin mode uses MmForm_PostLimbDraw instead of Player_PostLimbDrawGameplay, so the melee weapon
+// quad code at line 1904-1922 never runs for FD. This function provides the same functionality.
+void Player_FDMeleeWeaponPostLimb(PlayState* play, Player* this) {
+    Vec3f tipPos[3];
+
+    D_80126080.x = 5500.0f; // FD sword reach (from MM z_player_lib.c)
+    // FD always uses BGS trail type (Player_GetMeleeWeaponHeld returns 3 for FD)
+    EffectBlure_ChangeType(Effect_GetByIndex(this->meleeWeaponEffectIndex), TRAIL_TYPE_BIGGORON_SWORD);
+    func_80090A28(this, tipPos);
+    func_800906D4(play, this, tipPos);
+}
+
 void Player_DrawHookshotReticle(PlayState* play, Player* this, f32 hookshotRange) {
     static Vec3f D_801260C8 = { -500.0f, -100.0f, 0.0f };
     CollisionPoly* colPoly;
@@ -1782,8 +2086,11 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
 
         Math_Vec3f_Copy(&this->leftHandPos, D_80160000);
 
-        if (this->itemAction == PLAYER_IA_DEKU_STICK) {
+        if (this->itemAction == PLAYER_IA_DEKU_STICK || this->itemAction == PLAYER_IA_ROD_FIRE ||
+            this->itemAction == PLAYER_IA_ROD_ICE || this->itemAction == PLAYER_IA_ROD_LIGHT) {
             Vec3f sp124[3];
+            u8 isCustomRod = (this->itemAction == PLAYER_IA_ROD_FIRE || this->itemAction == PLAYER_IA_ROD_ICE ||
+                              this->itemAction == PLAYER_IA_ROD_LIGHT);
 
             OPEN_DISPS(play->state.gfxCtx);
 
@@ -1803,13 +2110,58 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
             Matrix_Scale(1.0f, this->unk_85C, 1.0f, MTXMODE_APPLY);
 
             gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
-            gSPDisplayList(POLY_OPA_DISP++, gLinkChildLinkDekuStickDL);
+
+            if (isCustomRod) {
+                // Custom rod - don't draw Deku Stick here
+                // Fire Rod is drawn in CustomItems_DrawFireRod following leftHandPos
+            } else {
+                // Normal Deku Stick
+                gSPDisplayList(POLY_OPA_DISP++, gLinkChildLinkDekuStickDL);
+            }
+
+            CLOSE_DISPS(play->state.gfxCtx);
+        } else if (ExtEquip_ShouldHideSwordDL() && (this->actor.scale.y >= 0.0f)) {
+            // Cane of Byrna: draw blue cane using limb matrix (follows hand rotation exactly)
+            OPEN_DISPS(play->state.gfxCtx);
+
+            // Melee weapon trail/collision (same as normal sword)
+            if (this->meleeWeaponState != 0) {
+                Vec3f spE4_byrna[3];
+                D_80126080.x = sMeleeWeaponLengths[Player_GetMeleeWeaponHeld(this)];
+
+                // IK Axe: double the hitbox reach
+                if (ExtEquip_IsEnabled() && gExtEquipState.currentExtSword == 3) {
+                    D_80126080.x = 8000.0f; // 2x normal hammer reach (~4000)
+                }
+
+                EffectBlure_ChangeType(Effect_GetByIndex(this->meleeWeaponEffectIndex),
+                                       sSwordTypes[Player_GetMeleeWeaponHeld(this)]);
+                func_80090A28(this, spE4_byrna);
+                func_800906D4(play, this, spE4_byrna);
+            }
+
+            // Draw Byrna cane model using current limb matrix
+            Matrix_Push();
+            Matrix_Translate(2028.26f, 267.2f, -33.82f, MTXMODE_APPLY);
+            Matrix_RotateZYX(-0x8000, 0, 0x4000, MTXMODE_APPLY);
+            Matrix_Scale(5.0f, 5.0f, 5.0f, MTXMODE_APPLY);
+
+            Gfx_SetupDL_25Opa(play->state.gfxCtx);
+            gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+            ExtEquip_DrawSwordDL(play);
+            Matrix_Pop();
 
             CLOSE_DISPS(play->state.gfxCtx);
         } else if ((this->actor.scale.y >= 0.0f) && (this->meleeWeaponState != 0)) {
             Vec3f spE4[3];
 
-            if (Player_HoldsBrokenKnife(this)) {
+            if (TransformMasks_IsFDSkinMode()) {
+                // Fierce Deity sword reach: 5500 units (from MM z_player_lib.c)
+                // Player_GetMeleeWeaponHeld returns BGS index (3) for FD
+                D_80126080.x = 5500.0f;
+                EffectBlure_ChangeType(Effect_GetByIndex(this->meleeWeaponEffectIndex),
+                                       sSwordTypes[Player_GetMeleeWeaponHeld(this)]);
+            } else if (Player_HoldsBrokenKnife(this)) {
                 D_80126080.x = 1500.0f;
             } else {
                 D_80126080.x = sMeleeWeaponLengths[Player_GetMeleeWeaponHeld(this)];
@@ -1910,6 +2262,18 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
         } else if ((this->actor.scale.y >= 0.0f) && (this->rightHandType == PLAYER_MODELTYPE_RH_SHIELD)) {
             Matrix_Get(&this->shieldMf);
             Player_UpdateShieldCollider(play, this, &this->shieldQuad, sRightHandLimbModelShieldQuadVertices);
+
+            // Gerudo: skip the shield DL — the dual scimitar at R_HAND was
+            // already drawn by GerudoForm_GetSwordDL_R via OverrideLimbDraw,
+            // and the player sees both swords held up as the "shield" visual
+            // (arms-only kf_hanare_loop override). Mechanics still fire:
+            // shieldMf is captured above and shieldQuad collider was just
+            // activated, so Mirror Shield reflection / deflection / sword
+            // sparks all work 1:1 vanilla. Only the model render is suppressed.
+            if (!GerudoForm_IsActive()) {
+                // Shield of Ikana: draw MM Mirror Shield from mm.o2r
+                ExtEquip_DrawShieldDL(play);
+            }
         }
 
         if (this->actor.scale.y >= 0.0f) {
@@ -1962,13 +2326,30 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
 
                 Matrix_TranslateRotateZYX(&sSheathLimbModelShieldOnBackPos, &sSheathLimbModelShieldOnBackZyxRot);
                 Matrix_Get(&this->shieldMf);
+
+                // Shield of Ikana: draw MM Mirror Shield on back
+                ExtEquip_DrawShieldBackDL(play);
             }
+
         } else if (limbIndex == PLAYER_LIMB_HEAD) {
             Matrix_MultVec3f(&D_801260D4, &this->actor.focus.pos);
-        } else {
+
+            // Draw worn MM mask on Link's head (matrix is in head limb space)
+            TransformMasks_WearDraw(play, this);
+
+        } else if (limbIndex == PLAYER_LIMB_UPPER) {
+            // Spirit Breastplate: draw Iron Knuckle armor on torso
+            ExtEquip_DrawBreastplate(play);
+        } else if (limbIndex == PLAYER_LIMB_L_SHOULDER || limbIndex == PLAYER_LIMB_R_SHOULDER) {
+            // Magic Cape + Champion's Scarf: capture shoulder world positions
+            ExtEquip_CaptureCapeShoulderPos(limbIndex);
+        } else if (limbIndex == PLAYER_LIMB_L_FOOT || limbIndex == PLAYER_LIMB_R_FOOT) {
             Vec3f* vec = &sLeftRightFootLimbModelFootPos[(gSaveContext.linkAge)];
 
             Actor_SetFeetPos(&this->actor, limbIndex, PLAYER_LIMB_L_FOOT, vec, PLAYER_LIMB_R_FOOT, vec);
+
+            // Draw Pegasus Anklet (golden torus + fairy wings) on each foot
+            ExtEquip_DrawAnklet(play, (limbIndex == PLAYER_LIMB_R_FOOT) ? 1 : 0);
         }
     }
 }
@@ -2185,8 +2566,24 @@ void Player_DrawPauseImpl(PlayState* play, void* gameplayKeep, void* linkObject,
 
     gSPSegment(POLY_OPA_DISP++, 0x0C, gCullBackDList);
 
+    // PAK Loader: swap pause screen skeleton with custom model
+    void* pauseSkelBackup = skelAnime->skeleton;
+    s32 pauseDListCountBackup = skelAnime->dListCount;
+    if (PakLoader_HasActiveModel()) {
+        PakLoader_SwapSkeleton(GET_PLAYER(play));
+        // Copy the swapped skeleton to the pause skelAnime
+        Player* player = GET_PLAYER(play);
+        skelAnime->skeleton = player->skelAnime.skeleton;
+        skelAnime->dListCount = player->skelAnime.dListCount;
+        PakLoader_RestoreSkeleton(player);
+    }
+
     Player_DrawImpl(play, skelAnime->skeleton, skelAnime->jointTable, skelAnime->dListCount, 0, tunic, boots, 0,
                     Player_OverrideLimbDrawPause, NULL, &playerSwordAndShield);
+
+    // Restore pause skeleton
+    skelAnime->skeleton = pauseSkelBackup;
+    skelAnime->dListCount = pauseDListCountBackup;
 
     if (CVarGetInteger(CVAR_GENERAL("PauseMenuAnimatedLinkTriforce"), 0)) {
         Matrix_SetTranslateRotateYXZ(pos->x - (LINK_AGE_IN_YEARS == YEARS_ADULT ? 25 : 0),

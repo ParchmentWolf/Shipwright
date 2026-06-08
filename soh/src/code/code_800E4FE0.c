@@ -38,6 +38,16 @@ AudioTask* func_800E4FE0(void) {
 extern u64 rspAspMainDataStart[];
 extern u64 rspAspMainDataEnd[];
 
+// MM Direct Audio hook: mix MM sounds into output after OOT audio generation
+extern void MmDirectAudio_MixInto(s16* outBuf, u32 numSamples);
+// Pikachu voice sample mixer
+extern void PikaSfx_MixInto(s16* outBuf, u32 numSamples);
+// Custom Link voice pack mixer (Z64Online-style .pak voice packs)
+extern void VoicePack_MixInto(s16* outBuf, u32 numSamples);
+// SM64 Mario audio: libsm64's generated PCM (produced by sm64_audio_tick
+// on the game thread, drained here on the audio thread via a ring buffer).
+extern void Sm64Audio_MixInto(int16_t* outBuf, uint32_t numSamples);
+
 void AudioMgr_CreateNextAudioBuffer(s16* samples, u32 num_samples) {
     OSMesg sp4C;
 
@@ -68,6 +78,16 @@ void AudioMgr_CreateNextAudioBuffer(s16* samples, u32 num_samples) {
     }
     s32 writtenCmds;
     AudioSynth_Update(gAudioContext.curAbiCmdBuf, &writtenCmds, samples, num_samples);
+
+    // Mix MM direct audio sounds into the output buffer
+    MmDirectAudio_MixInto(samples, num_samples);
+    // Mix Pikachu voice samples
+    PikaSfx_MixInto(samples, num_samples);
+    // Mix custom Link voice pack samples (replaces NA_SE_VO_LI_* when active)
+    VoicePack_MixInto(samples, num_samples);
+    // Mix libsm64 Mario audio (jumps, punches, coins, death, etc.)
+    Sm64Audio_MixInto(samples, num_samples);
+
     gAudioContext.audioRandom = (gAudioContext.audioRandom + gAudioContext.totalTaskCnt) * osGetCount();
 }
 

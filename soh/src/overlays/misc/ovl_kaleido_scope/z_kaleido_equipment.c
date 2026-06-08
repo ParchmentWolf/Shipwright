@@ -3,6 +3,8 @@
 #include "textures/parameter_static/parameter_static.h"
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/enhancementTypes.h"
+#include "mods/extended_inventory.h"
+#include "mods/extended_equipment.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 static u8 sChildUpgrades[] = { UPG_BULLET_BAG, UPG_BOMB_BAG, UPG_STRENGTH, UPG_SCALE };
@@ -167,6 +169,9 @@ void KaleidoScope_DrawPlayerWork(PlayState* play) {
 }
 
 void KaleidoScope_DrawEquipment(PlayState* play) {
+    // Suppress ext equipment icon overrides so vanilla sword/shield icons show on equip screen
+    gExtEquipSuppressIconOverride = 1;
+
     PauseContext* pauseCtx = &play->pauseCtx;
     Input* input = &play->state.input[0];
     u16 i;
@@ -184,19 +189,35 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
     s16 cursorX;
     s16 cursorY;
     s16 oldCursorPoint;
+    u8 extEquipPage;
 
     OPEN_DISPS(play->state.gfxCtx);
+
+    extEquipPage = (ExtEquip_GetPage() == 1);
 
     gDPPipeSync(POLY_OPA_DISP++);
     gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, ZREG(39), ZREG(40), ZREG(41), pauseCtx->alpha);
     gDPSetEnvColor(POLY_OPA_DISP++, ZREG(43), ZREG(44), ZREG(45), 0);
 
-    for (i = 0, j = 64; i < 4; i++, j += 4) {
-        if (CUR_EQUIP_VALUE(i) != 0) {
-            gDPPipeSync(POLY_OPA_DISP++);
-            gSPVertex(POLY_OPA_DISP++, &pauseCtx->equipVtx[j], 4, 0);
-
-            POLY_OPA_DISP = KaleidoScope_QuadTextureIA8(POLY_OPA_DISP, gEquippedItemOutlineTex, 32, 32, 0);
+    if (extEquipPage) {
+        // Extended equipment page: draw equipped outline for ext-equipped items
+        for (i = 0; i < 4; i++) {
+            u8 extIdx = ExtEquip_GetCurrent(i);
+            if (extIdx > 0 && extIdx <= 3) {
+                // Vertex index: row * 16 + col * 4, where col = extIdx (1-3)
+                u16 vtxIdx = i * 16 + extIdx * 4;
+                gDPPipeSync(POLY_OPA_DISP++);
+                gSPVertex(POLY_OPA_DISP++, &pauseCtx->equipVtx[vtxIdx], 4, 0);
+                POLY_OPA_DISP = KaleidoScope_QuadTextureIA8(POLY_OPA_DISP, gEquippedItemOutlineTex, 32, 32, 0);
+            }
+        }
+    } else {
+        for (i = 0, j = 64; i < 4; i++, j += 4) {
+            if (CUR_EQUIP_VALUE(i) != 0) {
+                gDPPipeSync(POLY_OPA_DISP++);
+                gSPVertex(POLY_OPA_DISP++, &pauseCtx->equipVtx[j], 4, 0);
+                POLY_OPA_DISP = KaleidoScope_QuadTextureIA8(POLY_OPA_DISP, gEquippedItemOutlineTex, 32, 32, 0);
+            }
         }
     }
 
@@ -206,6 +227,24 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
             (CVarGetInteger(CVAR_ENHANCEMENT("PauseAnyCursor"), 0) == PAUSE_ANY_CURSOR_RANDO_ONLY && IS_RANDO) ||
             (CVarGetInteger(CVAR_ENHANCEMENT("PauseAnyCursor"), 0) == PAUSE_ANY_CURSOR_ALWAYS_ON);
 
+        // Tick ExtEquip cooldown here (Player_Update doesn't run during pause)
+        if (gExtEquipState.pageSwitchTimer > 0) {
+            gExtEquipState.pageSwitchTimer--;
+        }
+
+        // L button: toggle extended equipment page
+        if (CHECK_BTN_ALL(input->press.button, BTN_L) && ExtEquip_IsEnabled() && ExtEquip_CanSwitch()) {
+            ExtEquip_SwitchPage();
+            extEquipPage = (ExtEquip_GetPage() == 1);
+            Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+        }
+
+        // On extended page, cursor can land on any equipment slot (all owned)
+        if (extEquipPage) {
+            pauseAnyCursor = true;
+        }
+
         oldCursorPoint = pauseCtx->cursorPoint[PAUSE_EQUIP];
         pauseCtx->cursorColorSet = 0;
 
@@ -214,6 +253,10 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
 
             cursorItem = pauseCtx->cursorItem[PAUSE_EQUIP];
             if ((cursorItem >= ITEM_SWORD_KOKIRI) && (cursorItem <= ITEM_BOOTS_HOVER)) {
+                pauseCtx->cursorColorSet = 8;
+            }
+            // Extended equipment items also get green cursor
+            if (extEquipPage && (cursorItem >= ITEM_EXT_SWORD_1) && (cursorItem <= ITEM_EXT_BOOTS_3)) {
                 pauseCtx->cursorColorSet = 8;
             }
 
@@ -383,7 +426,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                             pauseCtx->cursorY[PAUSE_EQUIP] = cursorY;
                             break;
                         }
-                    } else if (gBitFlags[cursorPoint - 1] & gSaveContext.inventory.equipment) {
+                    } else if ((gBitFlags[cursorPoint - 1] & gSaveContext.inventory.equipment) || extEquipPage) {
                         pauseCtx->cursorPoint[PAUSE_EQUIP] = cursorPoint;
                         pauseCtx->cursorX[PAUSE_EQUIP] = cursorX;
                         pauseCtx->cursorY[PAUSE_EQUIP] = cursorY;
@@ -424,7 +467,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                             pauseCtx->cursorY[PAUSE_EQUIP] = cursorY;
                             break;
                         }
-                    } else if (gBitFlags[cursorPoint - 1] & gSaveContext.inventory.equipment) {
+                    } else if ((gBitFlags[cursorPoint - 1] & gSaveContext.inventory.equipment) || extEquipPage) {
                         pauseCtx->cursorPoint[PAUSE_EQUIP] = cursorPoint;
                         pauseCtx->cursorX[PAUSE_EQUIP] = cursorX;
                         pauseCtx->cursorY[PAUSE_EQUIP] = cursorY;
@@ -471,7 +514,12 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                 }
             }
         } else {
-            cursorItem = ITEM_SWORD_KOKIRI + sEquipmentItemOffsets[pauseCtx->cursorPoint[PAUSE_EQUIP]];
+            if (extEquipPage) {
+                // Extended equipment page: map cursor position to ext item ID
+                cursorItem = ExtEquip_GetItemId(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP]);
+            } else {
+                cursorItem = ITEM_SWORD_KOKIRI + sEquipmentItemOffsets[pauseCtx->cursorPoint[PAUSE_EQUIP]];
+            }
             osSyncPrintf("ccc=%d\n", cursorItem);
 
             if (pauseCtx->cursorSpecialPos == 0) {
@@ -479,7 +527,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
             }
         }
 
-        if ((pauseCtx->cursorY[PAUSE_EQUIP] == 0) && (pauseCtx->cursorX[PAUSE_EQUIP] == 3)) {
+        if (!extEquipPage && (pauseCtx->cursorY[PAUSE_EQUIP] == 0) && (pauseCtx->cursorX[PAUSE_EQUIP] == 3)) {
             if (gSaveContext.bgsFlag != 0) {
                 cursorItem = ITEM_HEART_PIECE_2;
             } else if (CHECK_OWNED_EQUIP_ALT(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_BROKENGIANTKNIFE)) {
@@ -494,7 +542,10 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
 
         osSyncPrintf("kscope->select_name[Display_Equipment] = %d\n", pauseCtx->cursorItem[PAUSE_EQUIP]);
 
-        if (!(CHECK_AGE_REQ_EQUIP(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP]))) {
+        if (!extEquipPage && !(CHECK_AGE_REQ_EQUIP(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP]))) {
+            pauseCtx->nameColorSet = 1;
+        }
+        if (extEquipPage && !ExtEquip_CheckAgeReq(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP])) {
             pauseCtx->nameColorSet = 1;
         }
 
@@ -544,7 +595,42 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
             (pauseCtx->unk_1E4 == 0) && CHECK_BTN_ANY(input->press.button, buttonsToCheck) &&
             (pauseCtx->cursorX[PAUSE_EQUIP] != 0)) {
 
-            if (CHECK_AGE_REQ_EQUIP(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP])) {
+            // Extended equipment page: A = equip on body, C buttons = assign to C button for toggle
+            if (extEquipPage) {
+                u8 extAgeOk = ExtEquip_CheckAgeReq(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP]);
+                if (!extAgeOk) {
+                    Audio_PlaySoundGeneral(NA_SE_SY_ERROR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                } else if (CHECK_BTN_ALL(input->press.button, BTN_A)) {
+                    ExtEquip_Equip(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP]);
+                    Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                    pauseCtx->unk_1E4 = 7;
+                    sEquipTimer = 10;
+                } else if (CHECK_BTN_ANY(input->press.button, BTN_CLEFT | BTN_CDOWN | BTN_CRIGHT)) {
+                    // Assign ext equipment to C button for toggle on/off during gameplay
+                    u16 extItemId = ExtEquip_GetItemId(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP]);
+                    // Determine which C button was pressed (1=CLeft, 2=CDown, 3=CRight)
+                    s32 cBtn = CHECK_BTN_ALL(input->press.button, BTN_CLEFT)   ? 0
+                               : CHECK_BTN_ALL(input->press.button, BTN_CDOWN) ? 1
+                                                                               : 2;
+                    s32 buttonIndex = cBtn + 1; // buttonItems[1]=CLeft, [2]=CDown, [3]=CRight
+
+                    // Toggle: if same item already on this button, remove it
+                    if (gSaveContext.equips.buttonItems[buttonIndex] == extItemId) {
+                        gSaveContext.equips.buttonItems[buttonIndex] = ITEM_NONE;
+                        gSaveContext.equips.cButtonSlots[cBtn] = SLOT_NONE;
+                    } else {
+                        gSaveContext.equips.buttonItems[buttonIndex] = extItemId;
+                        gSaveContext.equips.cButtonSlots[cBtn] = SLOT_NONE; // No inventory slot
+                    }
+                    Interface_LoadItemIcon2(play, buttonIndex);
+                    Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                    pauseCtx->unk_1E4 = 7;
+                    sEquipTimer = 10;
+                }
+            } else if (CHECK_AGE_REQ_EQUIP(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP])) {
                 if (CHECK_BTN_ALL(input->press.button, BTN_A)) {
 
                     // #Region SoH [Enhancements]
@@ -613,6 +699,11 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
 
                     if (CHECK_OWNED_EQUIP(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP] - 1)) {
                         Inventory_ChangeEquipment(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP]);
+                        // Clear extended equipment when vanilla is equipped
+                        // Boots are jewelry (anklets) — don't unequip when changing vanilla boots
+                        if (pauseCtx->cursorY[PAUSE_EQUIP] != EQUIP_TYPE_BOOTS) {
+                            ExtEquip_Unequip(pauseCtx->cursorY[PAUSE_EQUIP]);
+                        }
                     } else {
                         goto EQUIP_FAIL;
                     }
@@ -733,8 +824,10 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
 
         for (k = 0, temp = rowStart + 1, bit = rowStart, j = point; k < 3; k++, bit++, j += 4, temp++) {
 
-            if ((gBitFlags[bit] & gSaveContext.inventory.equipment) && (pauseCtx->cursorSpecialPos == 0)) {
-                if (CHECK_AGE_REQ_EQUIP(i, k + 1)) {
+            if (((gBitFlags[bit] & gSaveContext.inventory.equipment) || extEquipPage) &&
+                (pauseCtx->cursorSpecialPos == 0)) {
+                if ((extEquipPage && ExtEquip_CheckAgeReq(i, k + 1)) ||
+                    (!extEquipPage && CHECK_AGE_REQ_EQUIP(i, k + 1))) {
                     if (temp == cursorSlot) {
                         pauseCtx->equipVtx[j].v.ob[0] = pauseCtx->equipVtx[j + 2].v.ob[0] =
                             pauseCtx->equipVtx[j].v.ob[0] - 2;
@@ -787,8 +880,8 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                     gDPSetGrayscaleColor(POLY_OPA_DISP++, 109, 109, 109, 255);
                     gSPGrayscale(POLY_OPA_DISP++, true);
                 }
-                KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx,
-                                                   gItemIcons[sChildUpgradeItemBases[i] + point - 1], 32, 32, 0);
+                KaleidoScope_DrawQuadTextureRGBA32(
+                    play->state.gfxCtx, ExtInv_GetItemIcon(sChildUpgradeItemBases[i] + point - 1), 32, 32, 0);
                 gSPGrayscale(POLY_OPA_DISP++, false);
             }
         } else {
@@ -800,8 +893,8 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                     gSPGrayscale(POLY_OPA_DISP++, true);
                 }
                 KaleidoScope_DrawQuadTextureRGBA32(
-                    play->state.gfxCtx, gItemIcons[sChildUpgradeItemBases[i] + CUR_UPG_VALUE(sChildUpgrades[i]) - 1],
-                    32, 32, 0);
+                    play->state.gfxCtx,
+                    ExtInv_GetItemIcon(sChildUpgradeItemBases[i] + CUR_UPG_VALUE(sChildUpgrades[i]) - 1), 32, 32, 0);
                 gSPGrayscale(POLY_OPA_DISP++, false);
             } else if (CUR_UPG_VALUE(sAdultUpgrades[i]) != 0) {
                 // Grey Out the Goron Bracelet when Not Randomized and Toggle Strength Option is off
@@ -815,28 +908,47 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                     gSPGrayscale(POLY_OPA_DISP++, true);
                 }
                 KaleidoScope_DrawQuadTextureRGBA32(
-                    play->state.gfxCtx, gItemIcons[sAdultUpgradeItemBases[i] + CUR_UPG_VALUE(sAdultUpgrades[i]) - 1],
-                    32, 32, 0);
+                    play->state.gfxCtx,
+                    ExtInv_GetItemIcon(sAdultUpgradeItemBases[i] + CUR_UPG_VALUE(sAdultUpgrades[i]) - 1), 32, 32, 0);
                 gSPGrayscale(POLY_OPA_DISP++, false);
             }
         }
         // Draw inventory screen icons
         for (k = 0, bit = rowStart, point = 4; k < 3; k++, point += 4, temp++, bit++) {
 
-            int itemId = ITEM_SWORD_KOKIRI + temp;
-            bool age_restricted = !CHECK_AGE_REQ_ITEM(itemId);
-            if (age_restricted) {
-                gDPSetGrayscaleColor(POLY_OPA_DISP++, 109, 109, 109, 255);
-                gSPGrayscale(POLY_OPA_DISP++, true);
+            if (extEquipPage) {
+                // Extended equipment page: only draw owned items
+                if (ExtEquip_HasItem(i, k + 1)) {
+                    void* extIcon = ExtEquip_GetIcon(i, k + 1); // i=row(0-3), k+1=col(1-3)
+                    if (extIcon) {
+                        bool extAgeRestricted = !ExtEquip_CheckAgeReq(i, k + 1);
+                        if (extAgeRestricted) {
+                            gDPSetGrayscaleColor(POLY_OPA_DISP++, 109, 109, 109, 255);
+                            gSPGrayscale(POLY_OPA_DISP++, true);
+                        }
+                        KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, extIcon, 32, 32, point);
+                        if (extAgeRestricted) {
+                            gSPGrayscale(POLY_OPA_DISP++, false);
+                        }
+                    }
+                }
+            } else {
+                int itemId = ITEM_SWORD_KOKIRI + temp;
+                bool age_restricted = !CHECK_AGE_REQ_ITEM(itemId);
+                if (age_restricted) {
+                    gDPSetGrayscaleColor(POLY_OPA_DISP++, 109, 109, 109, 255);
+                    gSPGrayscale(POLY_OPA_DISP++, true);
+                }
+                if (((u32)i == 0) && (k == 2) && (gSaveContext.bgsFlag != 0)) {
+                    KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, gItemIconSwordBiggoronTex, 32, 32, point);
+                } else if ((i == 0) && (k == 2) && (gBitFlags[bit + 1] & gSaveContext.inventory.equipment)) {
+                    KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, gItemIconBrokenGiantsKnifeTex, 32, 32,
+                                                       point);
+                } else if (gBitFlags[bit] & gSaveContext.inventory.equipment) {
+                    KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, ExtInv_GetItemIcon(itemId), 32, 32, point);
+                }
+                gSPGrayscale(POLY_OPA_DISP++, false);
             }
-            if (((u32)i == 0) && (k == 2) && (gSaveContext.bgsFlag != 0)) {
-                KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, gItemIconSwordBiggoronTex, 32, 32, point);
-            } else if ((i == 0) && (k == 2) && (gBitFlags[bit + 1] & gSaveContext.inventory.equipment)) {
-                KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, gItemIconBrokenGiantsKnifeTex, 32, 32, point);
-            } else if (gBitFlags[bit] & gSaveContext.inventory.equipment) {
-                KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, gItemIcons[itemId], 32, 32, point);
-            }
-            gSPGrayscale(POLY_OPA_DISP++, false);
         }
     }
 
@@ -884,4 +996,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
     if (gUpgradeMasks[0]) {}
 
     CLOSE_DISPS(play->state.gfxCtx);
+
+    // Restore ext equipment icon overrides
+    gExtEquipSuppressIconOverride = 0;
 }

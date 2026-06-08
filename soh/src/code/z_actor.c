@@ -17,6 +17,13 @@
 
 #include "soh/ActorDB.h"
 #include "soh/OTRGlobals.h"
+#include "mods/transformation_masks/transformation_masks.h"
+#include "mods/transformation_masks/mm_mask_wear.h"
+
+// SW97 Shadow Medallion stealth — defined in expansions/sw97/player/sw97_player_behavior.inc.c
+// (compiled into z_player.c's TU via sw97_router.c). Returns nonzero while the
+// Shadow spell is active. Same hook semantics as Stone Mask: enemies can't detect Link.
+extern s32 Sw97_ShadowStealthActive(void);
 
 #include <string.h>
 #include <stdlib.h>
@@ -90,6 +97,9 @@ f32 iceTrapScale;
 
 // For Link's voice pitch SFX modifier
 static f32 freqMultiplier = 1;
+
+// Champion's Tunic slow factor (defined in extended_equipment.c)
+extern f32 gChampionSlowFactor;
 
 void ActorShape_Init(ActorShape* shape, f32 yOffset, ActorShadowFunc shadowDraw, f32 shadowScale) {
     shape->yOffset = yOffset;
@@ -1283,6 +1293,16 @@ void Actor_Destroy(Actor* actor, PlayState* play) {
 void Actor_UpdatePos(Actor* actor) {
     f32 speedRate = R_UPDATE_RATE * 0.5f;
 
+    // Champion's Tunic: Flurry Rush / Bullet Time world slowdown.
+    // Excluded: Link, native projectiles (ACTORCAT_ITEMACTION), and any
+    // actor spawned by Link as child (custom item projectiles).
+    if (gChampionSlowFactor < 1.0f
+        && actor->category != ACTORCAT_PLAYER
+        && actor->category != ACTORCAT_ITEMACTION
+        && actor->parent != &GET_PLAYER(gPlayState)->actor) {
+        speedRate *= gChampionSlowFactor;
+    }
+
     actor->world.pos.x += (actor->velocity.x * speedRate) + actor->colChkInfo.displacement.x;
     actor->world.pos.y += (actor->velocity.y * speedRate) + actor->colChkInfo.displacement.y;
     actor->world.pos.z += (actor->velocity.z * speedRate) + actor->colChkInfo.displacement.z;
@@ -1400,6 +1420,15 @@ f32 Actor_HeightDiff(Actor* actorA, Actor* actorB) {
 
 f32 Player_GetHeight(Player* player) {
     f32 offset = (player->stateFlags1 & PLAYER_STATE1_ON_HORSE) ? 32.0f : 0.0f;
+
+    // Transformation Masks: use form-specific height from MM decomp z_actor.c:1374-1400.
+    // Fixes camera positioning during get-item, Z-targeting, and general gameplay.
+    {
+        f32 formHeight = TransformMasks_GetFormHeight();
+        if (formHeight > 0.0f) {
+            return offset + formHeight;
+        }
+    }
 
     if (LINK_IS_ADULT) {
         return offset + 68.0f;
@@ -2236,18 +2265,55 @@ void func_8002F7A0(PlayState* play, Actor* actor, f32 arg2, s16 arg3, f32 arg4) 
 }
 
 void Player_PlaySfx(Actor* actor, u16 sfxId) {
+    // Suppress OOT SFX when in MM transformation form.
+    // MM forms play their own sounds via MmSfx_PlayAtPos / MmForm_PlaySfx.
+    // Keep: floor/surface SFX (WALK, JUMP, LAND, SLIP), environmental, water, status effects.
+    extern u8 TransformMasks_IsTransformed(void);
+    extern u8 GerudoForm_IsActive(void);
+    // Gerudo is the exception — gerudo.o2r doesn't ship MM combat SFX, so its
+    // dual-scimitar combo plays vanilla OOT sword sounds (NA_SE_IT_SWORD_SWING,
+    // etc.) directly. Without this carve-out the swing audio is silently
+    // dropped by the NA_SE_IT_* block below. Same pattern as
+    // Player_PlayVoiceSfx's Gerudo exception (z_player.c:1833).
+    if (actor->id == ACTOR_PLAYER && TransformMasks_IsTransformed() && !GerudoForm_IsActive()) {
+        // Block ALL item/weapon SFX (NA_SE_IT_* = 0x1800-0x18FF)
+        if ((sfxId & 0xF800) == 0x1800) {
+            return;
+        }
+        // Block ALL voice SFX (NA_SE_VO_LI_*)
+        if (sfxId >= NA_SE_VO_LI_SWORD_N && sfxId <= NA_SE_VO_LI_ELECTRIC_SHOCK_LV_KID) {
+            return;
+        }
+        // Block only combat SFX that MM handles via its own system.
+        // Keep body sounds (BODY_HIT, DAMAGE) — they're form-neutral impacts.
+        switch (sfxId) {
+            case NA_SE_PL_THROW:
+            case NA_SE_PL_CHANGE_ARMS:
+            case NA_SE_PL_CATCH_BOOMERANG:
+            case NA_SE_PL_KNOCK:
+            case NA_SE_PL_SPARK:
+                return;
+        }
+    }
+
     if (actor->id != ACTOR_PLAYER || sfxId < NA_SE_VO_LI_SWORD_N || sfxId > NA_SE_VO_LI_ELECTRIC_SHOCK_LV_KID) {
         Audio_PlaySoundGeneral(sfxId, &actor->projectedPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale,
                                &gSfxDefaultReverb);
     } else {
-        freqMultiplier = CVarGetFloat(CVAR_AUDIO("LinkVoiceFreqMultiplier"), 1.0);
-        if (freqMultiplier <= 0) {
-            freqMultiplier = 1;
+        // Custom voice pack interception: a loaded pack may replace this Link
+        // voice id with a sample from a .pak in mods/. If it handles the id we
+        // skip the vanilla SFX so we don't double-play.
+        extern u8 VoicePack_PlayIfMatch(u16 sfxId, Vec3f* pos);
+        if (!VoicePack_PlayIfMatch(sfxId, &actor->projectedPos)) {
+            freqMultiplier = CVarGetFloat(CVAR_AUDIO("LinkVoiceFreqMultiplier"), 1.0);
+            if (freqMultiplier <= 0) {
+                freqMultiplier = 1;
+            }
+            // Authentic behavior uses D_801333E0 for both freqScale and a4
+            // Audio_PlaySoundGeneral(sfxId, &actor->projectedPos, 4, &D_801333E0 , &D_801333E0, &D_801333E8);
+            Audio_PlaySoundGeneral(sfxId, &actor->projectedPos, 4, &freqMultiplier, &gSfxDefaultFreqAndVolScale,
+                                   &gSfxDefaultReverb);
         }
-        // Authentic behavior uses D_801333E0 for both freqScale and a4
-        // Audio_PlaySoundGeneral(sfxId, &actor->projectedPos, 4, &D_801333E0 , &D_801333E0, &D_801333E8);
-        Audio_PlaySoundGeneral(sfxId, &actor->projectedPos, 4, &freqMultiplier, &gSfxDefaultFreqAndVolScale,
-                               &gSfxDefaultReverb);
     }
 
     if (actor->id == ACTOR_PLAYER) {
@@ -2524,6 +2590,7 @@ void func_80030488(PlayState* play) {
 void Actor_DisableLens(PlayState* play) {
     if (play->actorCtx.lensActive) {
         play->actorCtx.lensActive = false;
+        play->actorCtx.lensFromLantern = 0;
         Magic_Reset(play);
     }
 }
@@ -2662,9 +2729,20 @@ void Actor_UpdateAll(PlayState* play, ActorContext* actorCtx) {
                 }
             } else {
                 Math_Vec3f_Copy(&actor->prevPos, &actor->world.pos);
-                actor->xzDistToPlayer = Actor_WorldDistXZToActor(actor, &player->actor);
-                actor->yDistToPlayer = Actor_HeightDiff(actor, &player->actor);
-                actor->xyzDistToPlayerSq = SQ(actor->xzDistToPlayer) + SQ(actor->yDistToPlayer);
+
+                // Stone Mask + SW97 Shadow Medallion: enemies and NPCs can't detect Link.
+                // Also covers hostile MISC actors like Leever (ACTORCAT_MISC) that would
+                // otherwise bypass the gate.
+                if ((MmMaskWear_IsStoneMaskActive() || Sw97_ShadowStealthActive()) &&
+                    (i == ACTORCAT_ENEMY || i == ACTORCAT_NPC || (actor->flags & ACTOR_FLAG_HOSTILE))) {
+                    actor->xzDistToPlayer = 32000.0f;
+                    actor->yDistToPlayer = 32000.0f;
+                    actor->xyzDistToPlayerSq = SQ(32000.0f) + SQ(32000.0f);
+                } else {
+                    actor->xzDistToPlayer = Actor_WorldDistXZToActor(actor, &player->actor);
+                    actor->yDistToPlayer = Actor_HeightDiff(actor, &player->actor);
+                    actor->xyzDistToPlayerSq = SQ(actor->xzDistToPlayer) + SQ(actor->yDistToPlayer);
+                }
 
                 actor->yawTowardsPlayer = Actor_WorldYawTowardActor(actor, &player->actor);
                 actor->flags &= ~ACTOR_FLAG_SFX_FOR_PLAYER_BODY_HIT;
@@ -2688,6 +2766,24 @@ void Actor_UpdateAll(PlayState* play, ActorContext* actorCtx) {
                     if (GameInteractor_ShouldActorUpdate(actor)) {
                         actor->update(actor, play);
                         GameInteractor_ExecuteOnActorUpdate(actor);
+                        // Champion's Tunic: after update, freeze non-player actors
+                        // for several frames to produce slow-mo effect.
+                        // freezeTimer is decremented by DECR() above (line 2725);
+                        // when it hits 0 the actor updates once, then we re-freeze.
+                        // 5 frames frozen + 1 update = 1/6 speed ≈ 17% (close to 0.15).
+                        //
+                        // Excluded from freeze:
+                        //   • ACTORCAT_PLAYER (Link himself)
+                        //   • ACTORCAT_ITEMACTION (native arrows, seeds, hookshot, boomerang)
+                        //   • Any actor whose parent is Link — catches all custom item
+                        //     projectiles (beetle drone, switchhook hook, whip, etc.)
+                        //     since they're spawned with Actor_SpawnAsChild from player.
+                        if (gChampionSlowFactor < 1.0f
+                            && i != ACTORCAT_PLAYER
+                            && i != ACTORCAT_ITEMACTION
+                            && actor->parent != &player->actor) {
+                            actor->freezeTimer = 5;
+                        }
                     }
                     func_8003F8EC(play, &play->colCtx.dyna, actor);
                 }
@@ -2808,6 +2904,11 @@ void Actor_Draw(PlayState* play, Actor* actor) {
         actor->shape.shadowDraw(actor, lights, play);
     }
 
+    // VB_ACTOR_POST_DRAW: subscribers (e.g. Harpoon's Triforce Thief carrier
+    // indicator) can draw extra geometry attached to this actor after its
+    // own draw + shadow pass.
+    GameInteractor_Should(VB_ACTOR_POST_DRAW, true, play, actor);
+
     CLOSE_DISPS(play->state.gfxCtx);
     FrameInterpolation_RecordCloseChild();
 
@@ -2860,6 +2961,15 @@ void Actor_DrawLensActors(PlayState* play, s32 numInvisibleActors, Actor** invis
     Actor** invisibleActor;
     GraphicsContext* gfxCtx;
     s32 i;
+
+    // Poe lantern: draw lens actors without any overlay (no red tint, no mask)
+    if (play->actorCtx.lensFromLantern) {
+        invisibleActor = &invisibleActors[0];
+        for (i = 0; i < numInvisibleActors; i++) {
+            Actor_Draw(play, *(invisibleActor++));
+        }
+        return;
+    }
 
     gfxCtx = play->state.gfxCtx;
 
@@ -3067,7 +3177,12 @@ void func_800315AC(PlayState* play, ActorContext* actorCtx) {
 
             if ((HREG(64) != 1) || ((HREG(65) != -1) && (HREG(65) != HREG(66))) || (HREG(69) == 0)) {
                 if (actor->sfx != 0) {
-                    func_80030ED8(actor);
+                    // Suppress continuous item SFX on player when in MM form
+                    extern u8 TransformMasks_IsTransformed(void);
+                    if (!(actor->id == ACTOR_PLAYER && TransformMasks_IsTransformed() &&
+                          (actor->sfx & 0xF800) == 0x1800)) {
+                        func_80030ED8(actor);
+                    }
                 }
             }
 

@@ -799,6 +799,11 @@ void SaveManager::InitFileNormal() {
     gSaveContext.ship.pendingSaleMod = MOD_NONE;
     gSaveContext.ship.pendingIceTrapCount = 0;
     gSaveContext.ship.maskMemory = PLAYER_MASK_NONE;
+    gSaveContext.ship.lanternFireType = 0;
+    gSaveContext.ship.extEquipSword = 0;
+    gSaveContext.ship.extEquipShield = 0;
+    gSaveContext.ship.extEquipTunic = 0;
+    gSaveContext.ship.extEquipBoots = 0;
 
     // Init with normal quest unless only an MQ rom is provided
     gSaveContext.ship.quest.id = OTRGlobals::Instance->HasOriginal() ? QUEST_NORMAL : QUEST_MASTER;
@@ -893,7 +898,11 @@ void SaveManager::InitFileDebug() {
         ITEM_BOTTLE,    ITEM_POTION_RED,    ITEM_POTION_GREEN, ITEM_POTION_BLUE, ITEM_POCKET_EGG,  ITEM_WEIRD_EGG,
     };
     for (int item = 0; item < ARRAY_COUNT(gSaveContext.inventory.items); item++) {
-        gSaveContext.inventory.items[item] = sItems[item];
+        if (item < sItems.size()) {
+            gSaveContext.inventory.items[item] = sItems[item];
+        } else {
+            gSaveContext.inventory.items[item] = ITEM_NONE;
+        }
     }
     static std::array<s8, 16> sAmmo = { 50, 50, 10, 30, 1, 1, 30, 1, 50, 1, 1, 1, 1, 1, 1, 1 };
     for (int ammo = 0; ammo < ARRAY_COUNT(gSaveContext.inventory.ammo); ammo++) {
@@ -1013,7 +1022,11 @@ void SaveManager::InitFileMaxed() {
         ITEM_FAIRY,     ITEM_FAIRY,        ITEM_BUG,     ITEM_FISH,     ITEM_CLAIM_CHECK, ITEM_MASK_BUNNY,
     };
     for (int item = 0; item < ARRAY_COUNT(gSaveContext.inventory.items); item++) {
-        gSaveContext.inventory.items[item] = sItems[item];
+        if (item < sItems.size()) {
+            gSaveContext.inventory.items[item] = sItems[item];
+        } else {
+            gSaveContext.inventory.items[item] = ITEM_NONE;
+        }
     }
     static std::array<s8, 16> sAmmo = { 30, 40, 40, 50, 0, 0, 50, 0, 50, 0, 0, 0, 0, 0, 15, 0 };
     for (int ammo = 0; ammo < ARRAY_COUNT(gSaveContext.inventory.ammo); ammo++) {
@@ -2150,6 +2163,11 @@ void SaveManager::LoadBaseVersion4() {
     SaveManager::Instance->LoadData("dogParams", gSaveContext.dogParams);
     SaveManager::Instance->LoadData("filenameLanguage", gSaveContext.ship.filenameLanguage);
     SaveManager::Instance->LoadData("maskMemory", gSaveContext.ship.maskMemory);
+    SaveManager::Instance->LoadData("lanternFireType", gSaveContext.ship.lanternFireType);
+    SaveManager::Instance->LoadData("extEquipSword", gSaveContext.ship.extEquipSword);
+    SaveManager::Instance->LoadData("extEquipShield", gSaveContext.ship.extEquipShield);
+    SaveManager::Instance->LoadData("extEquipTunic", gSaveContext.ship.extEquipTunic);
+    SaveManager::Instance->LoadData("extEquipBoots", gSaveContext.ship.extEquipBoots);
 }
 
 void SaveManager::SaveBase(SaveContext* saveContext, int sectionID, bool fullSave) {
@@ -2318,6 +2336,11 @@ void SaveManager::SaveBase(SaveContext* saveContext, int sectionID, bool fullSav
     SaveManager::Instance->SaveData("dogParams", saveContext->dogParams);
     SaveManager::Instance->SaveData("filenameLanguage", saveContext->ship.filenameLanguage);
     SaveManager::Instance->SaveData("maskMemory", saveContext->ship.maskMemory);
+    SaveManager::Instance->SaveData("lanternFireType", saveContext->ship.lanternFireType);
+    SaveManager::Instance->SaveData("extEquipSword", saveContext->ship.extEquipSword);
+    SaveManager::Instance->SaveData("extEquipShield", saveContext->ship.extEquipShield);
+    SaveManager::Instance->SaveData("extEquipTunic", saveContext->ship.extEquipTunic);
+    SaveManager::Instance->SaveData("extEquipBoots", saveContext->ship.extEquipBoots);
 }
 
 // Load a string into a char array based on size and ensuring it is null terminated when overflowed

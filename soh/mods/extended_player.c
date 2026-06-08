@@ -1,0 +1,541 @@
+/**
+ * extended_player.c - Extended player item action system
+ *
+ * Maps custom ITEM_xxx values to PLAYER_IA_xxx actions.
+ * Provides model groups, update functions, and init functions for custom items.
+ */
+
+#include "extended_player.h"
+#include "z64.h"
+#include "mods/items/custom_items.h"
+
+// External reference to vanilla arrays
+extern int8_t sItemActions[];
+extern uint8_t sActionModelGroups[];
+extern s32 (*sItemActionUpdateFuncs[])(Player* this, PlayState* play);
+extern void (*sItemActionInitFuncs[])(PlayState* play, Player* this);
+
+// External vanilla functions used by custom items
+extern s32 func_8083485C(Player* this, PlayState* play);
+extern s32 Player_UpperAction_Sword(Player* this, PlayState* play);
+extern void Player_InitDefaultIA(PlayState* play, Player* this);
+
+// External custom item upper action functions
+extern s32 Player_UpperAction_Beetle(Player* this, PlayState* play);
+extern s32 Player_UpperAction_BombArrows(Player* this, PlayState* play);
+extern s32 Player_UpperAction_CaneOfSomaria(Player* this, PlayState* play);
+extern s32 Player_UpperAction_DekuLeaf(Player* this, PlayState* play);
+extern s32 Player_UpperAction_Shovel(Player* this, PlayState* play);
+extern s32 Player_UpperAction_SwitchHook(Player* this, PlayState* play);
+
+// External custom item init functions (not declared in custom_items.h)
+extern void Player_InitHyliasGraceIA(PlayState* play, Player* this);
+extern void Player_InitZonaiPermafrostIA(PlayState* play, Player* this);
+extern void Player_InitSwitchHookIA(PlayState* play, Player* this);
+extern void Player_InitMogmaMittsIA(PlayState* play, Player* this);
+extern void Player_InitWhipIA(PlayState* play, Player* this);
+extern void Player_InitDominionRodIA(PlayState* play, Player* this);
+extern void Player_InitTimeGateIA(PlayState* play, Player* this);
+extern void Player_InitMinishCapIA(PlayState* play, Player* this);
+extern void Player_InitLanternIA(PlayState* play, Player* this);
+extern void Player_InitPending3IA(PlayState* play, Player* this);
+
+// Decide whether an SW97 elemental arrow item should fire from bow or slingshot.
+// Default: bow for adult, slingshot for child (vanilla age-based weapon).
+// With BowSlingshotAmmoFix + TimelessEquipment both enabled, child can own and
+// fire the bow — so prefer bow whenever the bow is in inventory regardless of age.
+static s32 Sw97_PreferBow(void) {
+    s32 useBow = LINK_IS_ADULT;
+    if (CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0) &&
+        CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0)) {
+        useBow = (INV_CONTENT(ITEM_BOW) == ITEM_BOW);
+    }
+    return useBow;
+}
+
+/**
+ * Get the PLAYER_IA_xxx value for a given ITEM_xxx value.
+ * Uses switch statement for custom items (following extended_inventory pattern).
+ */
+int8_t ExtPlayer_GetItemAction(int32_t item) {
+    // Handle special cases first
+    if (item >= ITEM_NONE_FE) {
+        return PLAYER_IA_NONE;
+    }
+    if (item == ITEM_LAST_USED) {
+        return PLAYER_IA_SWORD_CS;
+    }
+    if (item == ITEM_FISHING_POLE) {
+        return PLAYER_IA_FISHING_POLE;
+    }
+
+    // Handle items beyond the vanilla sItemActions array with switch
+    switch (item) {
+        // Items 56-61 (bow combos and swords - originally in expanded vanilla array)
+        case ITEM_BOW_ARROW_FIRE:
+            return PLAYER_IA_BOW_FIRE;
+        case ITEM_BOW_ARROW_ICE:
+            return PLAYER_IA_BOW_ICE;
+        case ITEM_BOW_ARROW_LIGHT:
+            return PLAYER_IA_BOW_LIGHT;
+        case ITEM_SWORD_KOKIRI:
+            return PLAYER_IA_SWORD_KOKIRI;
+        case ITEM_SWORD_MASTER:
+            return PLAYER_IA_SWORD_MASTER;
+        case ITEM_SWORD_BGS:
+            return PLAYER_IA_SWORD_BIGGORON;
+
+        // Custom items (0x9D - 0xB6)
+        case ITEM_ROCS_FEATHER_SKIJER:
+            return PLAYER_IA_ROCS_FEATHER_SKIJER;
+        case ITEM_ROCS_CAPE:
+            return PLAYER_IA_ROCS_CAPE;
+        case ITEM_DESIRE_SENSOR:
+            return PLAYER_IA_DESIRE_SENSOR;
+        case ITEM_HYLIAS_GRACE:
+            return PLAYER_IA_HYLIAS_GRACE;
+        case ITEM_ZONAI_PERMAFROST:
+            return PLAYER_IA_ZONAI_PERMAFROST;
+        case ITEM_DEMISE_DESTRUCTION:
+            return PLAYER_IA_DEMISE_DESTRUCTION;
+        case ITEM_DEKU_LEAF:
+            return PLAYER_IA_DEKU_LEAF;
+        case ITEM_SWITCH_HOOK:
+            return PLAYER_IA_SWITCH_HOOK;
+        case ITEM_MOGMA_MITTS:
+            return PLAYER_IA_MOGMA_MITTS;
+        case ITEM_GUST_JAR:
+            return PLAYER_IA_GUST_JAR;
+        case ITEM_BALL_AND_CHAIN:
+            return PLAYER_IA_BALL_AND_CHAIN;
+        case ITEM_WHIP:
+            return PLAYER_IA_WHIP;
+        case ITEM_SPINNER:
+            return PLAYER_IA_SPINNER;
+        case ITEM_CANE_OF_SOMARIA:
+            return PLAYER_IA_CANE_OF_SOMARIA;
+        case ITEM_DOMINION_ROD:
+            return PLAYER_IA_DOMINION_ROD;
+        case ITEM_TIME_GATE:
+            return PLAYER_IA_TIME_GATE;
+        case ITEM_BOMB_ARROWS:
+            return PLAYER_IA_BOMB_ARROWS;
+        case ITEM_ROD_FIRE:
+            return PLAYER_IA_ROD_FIRE;
+        case ITEM_ROD_ICE:
+            return PLAYER_IA_ROD_ICE;
+        case ITEM_ROD_LIGHT:
+            return PLAYER_IA_ROD_LIGHT;
+        case ITEM_BEETLE:
+            return PLAYER_IA_BEETLE;
+        case ITEM_SHOVEL:
+            return PLAYER_IA_SHOVEL;
+        case ITEM_MINISH_CAP:
+            return PLAYER_IA_MINISH_CAP;
+        case ITEM_LANTERN:
+            return PLAYER_IA_LANTERN;
+        case ITEM_POKEBALL:
+            return PLAYER_IA_PENDING_3;
+
+        // Chateau Romani (bottle item - drink to activate infinite magic)
+        case ITEM_CHATEAU_ROMANI:
+            return PLAYER_IA_BOTTLE_POTION_BLUE;
+
+        // MM Mask items (0xB7-0xCE)
+        case ITEM_MM_MASK_POSTMAN:
+            return PLAYER_IA_MM_MASK_POSTMAN;
+        case ITEM_MM_MASK_ALL_NIGHT:
+            return PLAYER_IA_MM_MASK_ALL_NIGHT;
+        case ITEM_MM_MASK_BLAST:
+            return PLAYER_IA_MM_MASK_BLAST;
+        case ITEM_MM_MASK_STONE:
+            return PLAYER_IA_MM_MASK_STONE;
+        case ITEM_MM_MASK_GREAT_FAIRY:
+            return PLAYER_IA_MM_MASK_GREAT_FAIRY;
+        case ITEM_MM_MASK_DEKU:
+            return PLAYER_IA_MM_MASK_DEKU;
+        case ITEM_MM_MASK_KEATON:
+            return PLAYER_IA_MM_MASK_KEATON;
+        case ITEM_MM_MASK_BREMEN:
+            return PLAYER_IA_MM_MASK_BREMEN;
+        case ITEM_MM_MASK_BUNNY:
+            return PLAYER_IA_MM_MASK_BUNNY;
+        case ITEM_MM_MASK_DON_GERO:
+            return PLAYER_IA_MM_MASK_DON_GERO;
+        case ITEM_MM_MASK_SCENTS:
+            return PLAYER_IA_MM_MASK_SCENTS;
+        case ITEM_MM_MASK_GORON:
+            return PLAYER_IA_MM_MASK_GORON;
+        case ITEM_MM_MASK_ROMANI:
+            return PLAYER_IA_MM_MASK_ROMANI;
+        case ITEM_MM_MASK_CIRCUS_LEADER:
+            return PLAYER_IA_MM_MASK_CIRCUS_LEADER;
+        case ITEM_MM_MASK_KAFEI:
+            return PLAYER_IA_MM_MASK_KAFEI;
+        case ITEM_MM_MASK_COUPLE:
+            return PLAYER_IA_MM_MASK_COUPLE;
+        case ITEM_MM_MASK_TRUTH:
+            return PLAYER_IA_MM_MASK_TRUTH;
+        case ITEM_MM_MASK_ZORA:
+            return PLAYER_IA_MM_MASK_ZORA;
+        case ITEM_MM_MASK_KAMARO:
+            return PLAYER_IA_MM_MASK_KAMARO;
+        case ITEM_MM_MASK_GIBDO:
+            return PLAYER_IA_MM_MASK_GIBDO;
+        case ITEM_MM_MASK_GARO:
+            return PLAYER_IA_MM_MASK_GARO;
+        case ITEM_MM_MASK_CAPTAIN:
+            return PLAYER_IA_MM_MASK_CAPTAIN;
+        case ITEM_MM_MASK_GIANT:
+            return PLAYER_IA_MM_MASK_GIANT;
+        case ITEM_MM_MASK_FIERCE_DEITY:
+            return PLAYER_IA_MM_MASK_FIERCE_DEITY;
+
+        // SW97 Medallion spells (quest medallions → spell IAs)
+        case ITEM_MEDALLION_FOREST:
+            return PLAYER_IA_MAGIC_SPELL_15;
+        case ITEM_MEDALLION_SPIRIT:
+            return PLAYER_IA_MAGIC_SPELL_16;
+        case ITEM_MEDALLION_SHADOW:
+            return PLAYER_IA_MAGIC_SPELL_17;
+        case ITEM_MEDALLION_WATER:
+            return PLAYER_IA_FARORES_WIND;
+        case ITEM_MEDALLION_LIGHT:
+            return PLAYER_IA_NAYRUS_LOVE;
+        case ITEM_MEDALLION_FIRE:
+            return PLAYER_IA_DINS_FIRE;
+
+        // SW97 Arrow items: bow IA if Sw97_PreferBow() (adult by default, or
+        // child-with-bow when both BowSlingshotAmmoFix and TimelessEquipment are on),
+        // slingshot IA otherwise.
+        case ITEM_SW97_ARROW_FIRE:
+            return Sw97_PreferBow() ? PLAYER_IA_BOW_FIRE : PLAYER_IA_SLINGSHOT;
+        case ITEM_SW97_ARROW_ICE:
+            return Sw97_PreferBow() ? PLAYER_IA_BOW_ICE : PLAYER_IA_SLINGSHOT;
+        case ITEM_SW97_ARROW_LIGHT:
+            return Sw97_PreferBow() ? PLAYER_IA_BOW_LIGHT : PLAYER_IA_SLINGSHOT;
+        case ITEM_SW97_ARROW_DARK:
+            return Sw97_PreferBow() ? PLAYER_IA_BOW_0C : PLAYER_IA_SLINGSHOT;
+        case ITEM_SW97_ARROW_SOUL:
+            return Sw97_PreferBow() ? PLAYER_IA_BOW_0D : PLAYER_IA_SLINGSHOT;
+        case ITEM_SW97_ARROW_WIND:
+            return Sw97_PreferBow() ? PLAYER_IA_BOW_0E : PLAYER_IA_SLINGSHOT;
+
+        // Mask of Scents reward — bottle with magic mushroom (drops as empty bottle on swing)
+        case ITEM_BOTTLE_WITH_MAGIC_MUSHROOM:
+            return PLAYER_IA_BOTTLE_MAGIC_MUSHROOM;
+
+        default:
+            break;
+    }
+
+    // For vanilla items, use the original array if within bounds
+    if (item < VANILLA_SITEMACTIONS_SIZE) {
+        return sItemActions[item];
+    }
+
+    // For items in the gap (equipment, songs, quest items, etc.), return NONE
+    return PLAYER_IA_NONE;
+}
+
+/**
+ * Get the model group for a given PLAYER_IA_xxx value.
+ * Uses switch statement for custom item actions.
+ */
+uint8_t ExtPlayer_GetActionModelGroup(int32_t itemAction) {
+    // Handle custom item actions with switch
+    switch (itemAction) {
+        case PLAYER_IA_ROCS_FEATHER_SKIJER:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_ROCS_CAPE:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_DESIRE_SENSOR:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_HYLIAS_GRACE:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_ZONAI_PERMAFROST:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_DEMISE_DESTRUCTION:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_DEKU_LEAF:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_SWITCH_HOOK:
+            return PLAYER_MODELGROUP_HOOKSHOT;
+        case PLAYER_IA_MOGMA_MITTS:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_GUST_JAR:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_BALL_AND_CHAIN:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_WHIP:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_SPINNER:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_CANE_OF_SOMARIA:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_DOMINION_ROD:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_TIME_GATE:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_BOMB_ARROWS:
+            return PLAYER_MODELGROUP_DEFAULT;
+        // Rods use BGS (two-handed) model group for proper sword animations
+        case PLAYER_IA_ROD_FIRE:
+            return PLAYER_MODELGROUP_BGS;
+        case PLAYER_IA_ROD_ICE:
+            return PLAYER_MODELGROUP_BGS;
+        case PLAYER_IA_ROD_LIGHT:
+            return PLAYER_MODELGROUP_BGS;
+        case PLAYER_IA_BEETLE:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_SHOVEL:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_MINISH_CAP:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_LANTERN:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_UNUSED_5B:
+            return PLAYER_MODELGROUP_DEFAULT;
+        case PLAYER_IA_PENDING_3:
+            return PLAYER_MODELGROUP_DEFAULT;
+        // MM Mask IAs (all no-op, default model)
+        case PLAYER_IA_MM_MASK_POSTMAN:
+        case PLAYER_IA_MM_MASK_ALL_NIGHT:
+        case PLAYER_IA_MM_MASK_BLAST:
+        case PLAYER_IA_MM_MASK_STONE:
+        case PLAYER_IA_MM_MASK_GREAT_FAIRY:
+        case PLAYER_IA_MM_MASK_DEKU:
+        case PLAYER_IA_MM_MASK_KEATON:
+        case PLAYER_IA_MM_MASK_BREMEN:
+        case PLAYER_IA_MM_MASK_BUNNY:
+        case PLAYER_IA_MM_MASK_DON_GERO:
+        case PLAYER_IA_MM_MASK_SCENTS:
+        case PLAYER_IA_MM_MASK_GORON:
+        case PLAYER_IA_MM_MASK_ROMANI:
+        case PLAYER_IA_MM_MASK_CIRCUS_LEADER:
+        case PLAYER_IA_MM_MASK_KAFEI:
+        case PLAYER_IA_MM_MASK_COUPLE:
+        case PLAYER_IA_MM_MASK_TRUTH:
+        case PLAYER_IA_MM_MASK_ZORA:
+        case PLAYER_IA_MM_MASK_KAMARO:
+        case PLAYER_IA_MM_MASK_GIBDO:
+        case PLAYER_IA_MM_MASK_GARO:
+        case PLAYER_IA_MM_MASK_CAPTAIN:
+        case PLAYER_IA_MM_MASK_GIANT:
+        case PLAYER_IA_MM_MASK_FIERCE_DEITY:
+            return PLAYER_MODELGROUP_DEFAULT;
+        // Bottle with Magic Mushroom — same handling as bottle items (BUG model group)
+        case PLAYER_IA_BOTTLE_MAGIC_MUSHROOM:
+            return PLAYER_MODELGROUP_DEFAULT;
+        default:
+            break;
+    }
+
+    // For vanilla item actions, use the original array if within bounds
+    if (itemAction < VANILLA_PLAYER_IA_COUNT) {
+        return sActionModelGroups[itemAction];
+    }
+
+    return PLAYER_MODELGROUP_DEFAULT;
+}
+
+/**
+ * Get the update function for a given PLAYER_IA_xxx value.
+ * Uses switch statement for custom item actions.
+ */
+ItemActionUpdateFunc ExtPlayer_GetItemActionUpdateFunc(int32_t itemAction) {
+    // Handle custom item actions with switch
+    switch (itemAction) {
+        case PLAYER_IA_ROCS_FEATHER_SKIJER:
+            return func_8083485C;
+        case PLAYER_IA_ROCS_CAPE:
+            return func_8083485C;
+        case PLAYER_IA_DESIRE_SENSOR:
+            return func_8083485C;
+        case PLAYER_IA_HYLIAS_GRACE:
+            return func_8083485C;
+        case PLAYER_IA_ZONAI_PERMAFROST:
+            return func_8083485C;
+        case PLAYER_IA_DEMISE_DESTRUCTION:
+            return func_8083485C;
+        case PLAYER_IA_DEKU_LEAF:
+            return Player_UpperAction_DekuLeaf;
+        case PLAYER_IA_SWITCH_HOOK:
+            return Player_UpperAction_SwitchHook;
+        case PLAYER_IA_MOGMA_MITTS:
+            return func_8083485C;
+        case PLAYER_IA_GUST_JAR:
+            return func_8083485C;
+        case PLAYER_IA_BALL_AND_CHAIN:
+            return func_8083485C;
+        case PLAYER_IA_WHIP:
+            return func_8083485C;
+        case PLAYER_IA_SPINNER:
+            return func_8083485C;
+        case PLAYER_IA_CANE_OF_SOMARIA:
+            return Player_UpperAction_CaneOfSomaria;
+        case PLAYER_IA_DOMINION_ROD:
+            return func_8083485C;
+        case PLAYER_IA_TIME_GATE:
+            return func_8083485C;
+        case PLAYER_IA_BOMB_ARROWS:
+            return Player_UpperAction_BombArrows;
+        // Rods use sword mechanics for charge attacks
+        case PLAYER_IA_ROD_FIRE:
+            return Player_UpperAction_Sword;
+        case PLAYER_IA_ROD_ICE:
+            return Player_UpperAction_Sword;
+        case PLAYER_IA_ROD_LIGHT:
+            return Player_UpperAction_Sword;
+        case PLAYER_IA_BEETLE:
+            return Player_UpperAction_Beetle;
+        case PLAYER_IA_SHOVEL:
+            return Player_UpperAction_Shovel;
+        case PLAYER_IA_MINISH_CAP:
+            return func_8083485C;
+        case PLAYER_IA_LANTERN:
+            return func_8083485C;
+        case PLAYER_IA_UNUSED_5B:
+            return func_8083485C;
+        case PLAYER_IA_PENDING_3:
+            return func_8083485C;
+        // MM Mask IAs (all no-op)
+        case PLAYER_IA_MM_MASK_POSTMAN:
+        case PLAYER_IA_MM_MASK_ALL_NIGHT:
+        case PLAYER_IA_MM_MASK_BLAST:
+        case PLAYER_IA_MM_MASK_STONE:
+        case PLAYER_IA_MM_MASK_GREAT_FAIRY:
+        case PLAYER_IA_MM_MASK_DEKU:
+        case PLAYER_IA_MM_MASK_KEATON:
+        case PLAYER_IA_MM_MASK_BREMEN:
+        case PLAYER_IA_MM_MASK_BUNNY:
+        case PLAYER_IA_MM_MASK_DON_GERO:
+        case PLAYER_IA_MM_MASK_SCENTS:
+        case PLAYER_IA_MM_MASK_GORON:
+        case PLAYER_IA_MM_MASK_ROMANI:
+        case PLAYER_IA_MM_MASK_CIRCUS_LEADER:
+        case PLAYER_IA_MM_MASK_KAFEI:
+        case PLAYER_IA_MM_MASK_COUPLE:
+        case PLAYER_IA_MM_MASK_TRUTH:
+        case PLAYER_IA_MM_MASK_ZORA:
+        case PLAYER_IA_MM_MASK_KAMARO:
+        case PLAYER_IA_MM_MASK_GIBDO:
+        case PLAYER_IA_MM_MASK_GARO:
+        case PLAYER_IA_MM_MASK_CAPTAIN:
+        case PLAYER_IA_MM_MASK_GIANT:
+        case PLAYER_IA_MM_MASK_FIERCE_DEITY:
+            return func_8083485C;
+        // Bottle with Magic Mushroom — no special update (drop on B-swing via vanilla bottle path)
+        case PLAYER_IA_BOTTLE_MAGIC_MUSHROOM:
+            return func_8083485C;
+        default:
+            break;
+    }
+
+    // For vanilla item actions, use the original array if within bounds
+    if (itemAction < VANILLA_PLAYER_IA_COUNT) {
+        return sItemActionUpdateFuncs[itemAction];
+    }
+
+    return func_8083485C;
+}
+
+/**
+ * Get the init function for a given PLAYER_IA_xxx value.
+ * Uses switch statement for custom item actions.
+ */
+ItemActionInitFunc ExtPlayer_GetItemActionInitFunc(int32_t itemAction) {
+    // Handle custom item actions with switch
+    switch (itemAction) {
+        case PLAYER_IA_ROCS_FEATHER_SKIJER:
+            return Player_InitDefaultIA;
+        case PLAYER_IA_ROCS_CAPE:
+            return Player_InitDefaultIA;
+        case PLAYER_IA_DESIRE_SENSOR:
+            return Player_InitDefaultIA;
+        case PLAYER_IA_HYLIAS_GRACE:
+            return Player_InitHyliasGraceIA;
+        case PLAYER_IA_ZONAI_PERMAFROST:
+            return Player_InitZonaiPermafrostIA;
+        case PLAYER_IA_DEMISE_DESTRUCTION:
+            return Player_InitDemiseDestructionIA;
+        case PLAYER_IA_DEKU_LEAF:
+            return Player_InitDefaultIA;
+        case PLAYER_IA_SWITCH_HOOK:
+            return Player_InitSwitchHookIA;
+        case PLAYER_IA_MOGMA_MITTS:
+            return Player_InitMogmaMittsIA;
+        case PLAYER_IA_GUST_JAR:
+            return Player_InitGustJarIA;
+        case PLAYER_IA_BALL_AND_CHAIN:
+            return Player_InitBallAndChainIA;
+        case PLAYER_IA_WHIP:
+            return Player_InitWhipIA;
+        case PLAYER_IA_SPINNER:
+            return Player_InitSpinnerIA;
+        case PLAYER_IA_CANE_OF_SOMARIA:
+            return Player_InitCaneOfSomariaIA;
+        case PLAYER_IA_DOMINION_ROD:
+            return Player_InitDominionRodIA;
+        case PLAYER_IA_TIME_GATE:
+            return Player_InitTimeGateIA;
+        case PLAYER_IA_BOMB_ARROWS:
+            return Player_InitBombArrowsIA;
+        case PLAYER_IA_ROD_FIRE:
+            return Player_InitFireRodIA;
+        case PLAYER_IA_ROD_ICE:
+            return Player_InitIceRodIA;
+        case PLAYER_IA_ROD_LIGHT:
+            return Player_InitLightRodIA;
+        case PLAYER_IA_BEETLE:
+            return Player_InitBeetleIA;
+        case PLAYER_IA_SHOVEL:
+            return Player_InitDefaultIA;
+        case PLAYER_IA_MINISH_CAP:
+            return Player_InitMinishCapIA;
+        case PLAYER_IA_LANTERN:
+            return Player_InitLanternIA;
+        case PLAYER_IA_UNUSED_5B:
+            return Player_InitDefaultIA;
+        case PLAYER_IA_PENDING_3:
+            return Player_InitPending3IA;
+        // MM Mask IAs (all default init)
+        case PLAYER_IA_MM_MASK_POSTMAN:
+        case PLAYER_IA_MM_MASK_ALL_NIGHT:
+        case PLAYER_IA_MM_MASK_BLAST:
+        case PLAYER_IA_MM_MASK_STONE:
+        case PLAYER_IA_MM_MASK_GREAT_FAIRY:
+        case PLAYER_IA_MM_MASK_DEKU:
+        case PLAYER_IA_MM_MASK_KEATON:
+        case PLAYER_IA_MM_MASK_BREMEN:
+        case PLAYER_IA_MM_MASK_BUNNY:
+        case PLAYER_IA_MM_MASK_DON_GERO:
+        case PLAYER_IA_MM_MASK_SCENTS:
+        case PLAYER_IA_MM_MASK_GORON:
+        case PLAYER_IA_MM_MASK_ROMANI:
+        case PLAYER_IA_MM_MASK_CIRCUS_LEADER:
+        case PLAYER_IA_MM_MASK_KAFEI:
+        case PLAYER_IA_MM_MASK_COUPLE:
+        case PLAYER_IA_MM_MASK_TRUTH:
+        case PLAYER_IA_MM_MASK_ZORA:
+        case PLAYER_IA_MM_MASK_KAMARO:
+        case PLAYER_IA_MM_MASK_GIBDO:
+        case PLAYER_IA_MM_MASK_GARO:
+        case PLAYER_IA_MM_MASK_CAPTAIN:
+        case PLAYER_IA_MM_MASK_GIANT:
+        case PLAYER_IA_MM_MASK_FIERCE_DEITY:
+            return Player_InitDefaultIA;
+        // Bottle with Magic Mushroom — default init (bottle behavior)
+        case PLAYER_IA_BOTTLE_MAGIC_MUSHROOM:
+            return Player_InitDefaultIA;
+        default:
+            break;
+    }
+
+    // For vanilla item actions, use the original array if within bounds
+    if (itemAction < VANILLA_PLAYER_IA_COUNT) {
+        return sItemActionInitFuncs[itemAction];
+    }
+
+    return Player_InitDefaultIA;
+}

@@ -1,7 +1,12 @@
 #include "z_en_m_thunder.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
+#include "mods/transformation_masks/transformation_masks.h"
+#include "overlays/effects/ovl_Effect_Ss_Blast/z_eff_ss_blast.h"
 
 #define FLAGS 0
+
+// Sword beam params: bit 7 in lower byte signals sword beam mode
+#define EN_M_THUNDER_SWORD_BEAM_FLAG 0x80
 
 void EnMThunder_Init(Actor* thisx, PlayState* play);
 void EnMThunder_Destroy(Actor* thisx, PlayState* play);
@@ -11,6 +16,7 @@ void EnMThunder_Draw(Actor* thisx, PlayState* play);
 void EnMThunder_AdjustEnvLights(PlayState* play, f32 intensity);
 void EnMThunder_ChargingSpinAttack(EnMThunder* this, PlayState* play);
 void EnMThunder_SpinAttacking(EnMThunder* this, PlayState* play);
+static void EnMThunder_SwordBeamAction(EnMThunder* this, PlayState* play);
 
 const ActorInit En_M_Thunder_InitVars = {
     ACTOR_EN_M_THUNDER,
@@ -66,6 +72,44 @@ void EnMThunder_Init(Actor* thisx, PlayState* play2) {
 
     Collider_InitCylinder(play, &this->collider);
     Collider_SetCylinder(play, &this->collider, &this->actor, &sCylinderInit);
+
+    // Sword beam mode: spawned by FD Z-target + B attack.
+    // From MM z_en_m_thunder.c EnMThunder_Init lines 169-184.
+    // Uses OOT struct fields mapped to MM fields:
+    //   spinAttackTimer    = lightColorFrac (lifetime: 1.0 → 0.0 at 0.05/frame = 20 frames)
+    //   spinAttackAlpha    = alphaFrac (alpha for draw: derived from lightColorFrac)
+    //   spinTrailTexScroll = scroll (texture animation counter)
+    //   dimmingIntensity   = scaleTarget (12.0 in MM, beam grows to this)
+    if (this->actor.params & EN_M_THUNDER_SWORD_BEAM_FLAG) {
+        // MM EnMThunder_Init line 124: shape.rot.y = player.shape.rot.y + 0x8000.
+        // Without this, movement formula (-80 * sin(shape.rot.y)) fires beam backward.
+        this->actor.shape.rot.y = player->actor.shape.rot.y + 0x8000;
+        this->attackStrength = 2; // Sword beam type
+        this->isUsingMagic = 0;   // No magic tracking
+        // MM: scale starts at 0, ramps to scaleTarget (12) via Math_SmoothStepToF
+        Actor_SetScale(&this->actor, 0.0f);
+        this->dimmingIntensity = 12.0f;  // scaleTarget (MM line 173)
+        this->spinAttackTimer = 1.0f;    // lightColorFrac starts at 1.0 (MM line 184)
+        this->spinAttackAlpha = 1.0f;    // alphaFrac starts at 1.0
+        this->spinTrailTexScroll = 0.0f; // scroll counter
+        this->followPlayerTimer = 1;     // timer (MM line 172)
+        // Collider: MM uses DMG_SWORD_BEAM (0x02000000) damage flags, damage=3
+        this->collider.info.toucher.dmgFlags = 0x02000000; // DMG_SWORD_BEAM
+        this->collider.info.toucher.damage = 3;            // MM line 175
+        this->collider.dim.height = 60;
+        this->collider.dim.yShift = -30;
+        this->actor.room = -1;
+        // Light (MM line 184: lightColorFrac = 1.0)
+        Lights_PointNoGlowSetInfo(&this->lightInfo, this->actor.world.pos.x, this->actor.world.pos.y,
+                                  this->actor.world.pos.z, 255, 255, 100, 800);
+        this->lightNode = LightContext_InsertLight(play, &play->lightCtx, &this->lightInfo);
+        // SFX (MM line 181)
+        Audio_PlaySoundGeneral(NA_SE_IT_ROLLING_CUT_LV1, &player->actor.projectedPos, 4, &gSfxDefaultFreqAndVolScale,
+                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+        EnMThunder_SetupAction(this, EnMThunder_SwordBeamAction);
+        return;
+    }
+
     this->swordType = (this->actor.params & 0xFF) - 1;
     Lights_PointNoGlowSetInfo(&this->lightInfo, this->actor.world.pos.x, this->actor.world.pos.y,
                               this->actor.world.pos.z, 255, 255, 255, 0);
@@ -301,12 +345,88 @@ void EnMThunder_SpinAttacking(EnMThunder* this, PlayState* play) {
     }
 }
 
+// =============================================================================
+// Fierce Deity Sword Beam (attackStrength == 2)
+// =============================================================================
+// Blue crescent energy disk fired when FD attacks while Z-targeting.
+// Travels forward 80 units/frame for 20 frames, deals 4 damage on contact.
+// DL loaded from mm.o2r (gSwordBeamDL in gameplay_keep).
+
+// From MM z_en_m_thunder.c EnMThunder_SwordBeam_Attack (line 400-442).
+// Beam grows from scale 0 to scaleTarget(12), fades via lightColorFrac 1.0→0.0.
+// Movement: -80 * cos(pitch) along yaw, -80 * sin(pitch) vertically.
+static void EnMThunder_SwordBeamAction(EnMThunder* this, PlayState* play) {
+    // Alpha from lightColorFrac (MM lines 404-408)
+    if (this->spinAttackTimer > (9.0f / 10.0f)) {
+        this->spinAttackAlpha = 1.0f; // alphaFrac
+    } else {
+        this->spinAttackAlpha = this->spinAttackTimer * (10.0f / 9.0f);
+    }
+
+    // Lifetime: lightColorFrac steps toward 0 (MM line 410, rate 0.05 = ~20 frames)
+    if (Math_StepToF(&this->spinAttackTimer, 0.0f, 0.05f)) {
+        Actor_Kill(&this->actor);
+        return;
+    }
+
+    // Movement: direct position update (MM lines 413-417)
+    f32 sp2C = -80.0f * Math_CosS(this->actor.world.rot.x);
+    this->actor.world.pos.x += sp2C * Math_SinS(this->actor.shape.rot.y);
+    this->actor.world.pos.z += sp2C * Math_CosS(this->actor.shape.rot.y);
+    this->actor.world.pos.y += -80.0f * Math_SinS(this->actor.world.rot.x);
+
+    // Scale ramps up to scaleTarget (MM line 419-420)
+    Math_SmoothStepToF(&this->actor.scale.x, this->dimmingIntensity, 0.6f, 2.0f, 0.0f);
+    Actor_SetScale(&this->actor, this->actor.scale.x);
+
+    // Scroll counter for texture animation
+    this->spinTrailTexScroll += 1.0f;
+
+    // Collider: radius grows with scale (MM line 422)
+    this->collider.dim.radius = (s16)(this->actor.scale.x * 5.0f);
+    // Position offset forward from actor (MM lines 428-432)
+    this->collider.dim.pos.x =
+        (s32)((Math_SinS(this->actor.shape.rot.y) * -5.0f * this->actor.scale.x) + this->actor.world.pos.x);
+    this->collider.dim.pos.y = (s32)this->actor.world.pos.y;
+    this->collider.dim.pos.z =
+        (s32)((Math_CosS(this->actor.shape.rot.y) * -5.0f * this->actor.scale.z) + this->actor.world.pos.z);
+
+    CollisionCheck_SetAT(play, &play->colChkCtx, &this->collider.base);
+
+    // Hit effect: white flash on enemy body when beam connects (uses gameplay_keep, always loaded)
+    if (this->collider.base.atFlags & AT_HIT) {
+        Actor* hitActor = this->collider.base.at;
+        if (hitActor != NULL) {
+            Vec3f vel = { 0.0f, 0.0f, 0.0f };
+            Vec3f accel = { 0.0f, 0.0f, 0.0f };
+            EffectSsBlast_SpawnWhiteCustomScale(play, &hitActor->focus.pos, &vel, &accel, 100, 250, 8);
+        }
+        Actor_Kill(&this->actor);
+        return;
+    }
+
+    // Timer (MM line 437-439)
+    if (this->followPlayerTimer > 0) {
+        this->followPlayerTimer--;
+    }
+}
+
 void EnMThunder_Update(Actor* thisx, PlayState* play) {
     EnMThunder* this = (EnMThunder*)thisx;
     f32 blueRadius;
     s32 redGreen;
 
     this->actionFunc(this, play);
+
+    // Sword beam: update light using lightColorFrac (MM EnMThunder_Update line 466-468)
+    if (this->attackStrength == 2) {
+        f32 lcf = this->spinAttackTimer; // lightColorFrac
+        Lights_PointNoGlowSetInfo(&this->lightInfo, this->actor.world.pos.x, this->actor.world.pos.y,
+                                  this->actor.world.pos.z, (s32)(lcf * 255.0f), (s32)(lcf * 255.0f),
+                                  (s32)(lcf * 100.0f), (s32)(lcf * 800.0f));
+        return;
+    }
+
     EnMThunder_AdjustEnvLights(play, this->dimmingIntensity);
     blueRadius = this->spinAttackTimer;
     redGreen = (u32)(blueRadius * 255.0f) & 0xFF;
@@ -322,6 +442,40 @@ void EnMThunder_Draw(Actor* thisx, PlayState* play2) {
     Player* player = GET_PLAYER(play);
     f32 phi_f14;
     s32 phi_t1;
+
+    // Sword beam: draw blue crescent energy disk from mm.o2r.
+    // From MM EnMThunder_Draw (lines 480-535): uses Matrix_Scale(0.02f), segment 0x08 TwoTexScroll,
+    // alphaFrac for fade, prim/env colors matching ENMTHUNDER_SUBTYPE_SWORDBEAM_REGULAR.
+    if (this->attackStrength == 2) {
+        u16 alpha = (u16)(this->spinAttackAlpha * 255.0f); // alphaFrac
+        Gfx* beamDL = TransformMasks_GetFDSwordBeamDL(play);
+
+        OPEN_DISPS(play->state.gfxCtx);
+        Gfx_SetupDL_25Xlu(play->state.gfxCtx);
+        // MM line 490: scale 0.02f applied to actor matrix (actor scale ramps to 12 → final 0.24f)
+        Matrix_Scale(0.02f, 0.02f, 0.02f, MTXMODE_APPLY);
+        gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+        // Segment 0x08: animated texture scroll (MM lines 504-506)
+        gSPSegment(POLY_XLU_DISP++, 0x08,
+                   Gfx_TwoTexScroll(play->state.gfxCtx, 0, 0, 0, 16, 64, 1, 0,
+                                    0x1FF - ((u16)(s32)(this->spinTrailTexScroll * 10.0f) & 0x1FF), 32, 128));
+        // Colors: MM SWORDBEAM_REGULAR (lines 527-529)
+        gDPSetPrimColor(POLY_XLU_DISP++, 0, 0x80, 170, 255, 255, alpha);
+        gDPSetEnvColor(POLY_XLU_DISP++, 0, 100, 255, 128);
+        if (beamDL != NULL) {
+            // MM DL from mm.o2r
+            gSPDisplayList(POLY_XLU_DISP++, beamDL);
+        } else {
+            // Fallback: use OOT level-1 spin attack DL (same cyan color)
+            gSPSegment(POLY_XLU_DISP++, 0x08,
+                       Gfx_TwoTexScroll(play->state.gfxCtx, 0, 0xFF - ((u8)(s32)(this->spinTrailTexScroll * 30) & 0xFF), 0, 0x40,
+                                        0x20, 1, 0xFF - ((u8)(s32)(this->spinTrailTexScroll * 20) & 0xFF), 0, 8, 8));
+            gSPDisplayList(POLY_XLU_DISP++, gSpinAttack1DL);
+            gSPDisplayList(POLY_XLU_DISP++, gSpinAttack2DL);
+        }
+        CLOSE_DISPS(play->state.gfxCtx);
+        return;
+    }
 
     OPEN_DISPS(play->state.gfxCtx);
     Gfx_SetupDL_25Xlu(play->state.gfxCtx);
