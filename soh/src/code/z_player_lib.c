@@ -461,6 +461,8 @@ Vec3f sGetItemRefPos;
 s32 sLeftHandType;
 s32 sRightHandType;
 
+extern s32 MmForm_GetCurrentForm(void);
+
 void Player_SetBootData(PlayState* play, Player* this) {
     s32 currentBoots;
     s16* bootRegs;
@@ -512,7 +514,6 @@ void Player_SetBootData(PlayState* play, Player* this) {
     //   Goron: R_RUN_SPEED_LIMIT=600, REG(68)=-140 (heavier gravity)
     //   Zora/Deku: R_RUN_SPEED_LIMIT=600
     if (TransformMasks_IsTransformed()) {
-        extern s32 MmForm_GetCurrentForm(void);
         s32 form = MmForm_GetCurrentForm();
 
         // OOT sBootData format: REG(19,30,32,34,35,36,37,38), REG(43), REG(45),

@@ -23,7 +23,7 @@
 #include "objects/object_warp1/object_warp1.h"
 
 // SwitchAge() is declared in mods.h with extern "C" linkage
-extern void SwitchAge(void);
+extern void SwitchAge();
 
 static s8 sTGPrevInvinc = 0;
 static s32 sTGPhaseEnd = 0; // Absolute tgTimer value when current anim phase ends

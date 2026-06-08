@@ -157,9 +157,9 @@ typedef enum MmPlayerTransformation {
 // =============================================================================
 
 struct MmPlayer;
-typedef void (*MmPlayerActionFunc)(struct MmPlayer* this, PlayState* play);
-typedef void (*MmPlayerUpperActionFunc)(struct MmPlayer* this, PlayState* play);
-typedef void (*MmAfterPutAwayFunc)(PlayState* play, struct MmPlayer* this);
+typedef void (*MmPlayerActionFunc)(struct MmPlayer*, PlayState* play);
+typedef void (*MmPlayerUpperActionFunc)(struct MmPlayer*, PlayState* play);
+typedef void (*MmAfterPutAwayFunc)(PlayState* play, struct MmPlayer*);
 
 // =============================================================================
 // MM PLAYER AGE PROPERTIES (transformation properties)
