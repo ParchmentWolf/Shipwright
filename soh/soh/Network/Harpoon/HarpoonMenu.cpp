@@ -10,6 +10,8 @@
 #include <cstdlib>
 #include <unordered_set>
 
+#include "fast/Fast3dGui.h"
+
 extern "C" {
 #include "macros.h"
 #include "variables.h"
