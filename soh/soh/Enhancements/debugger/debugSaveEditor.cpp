@@ -575,7 +575,8 @@ void DrawInventoryTab() {
                     const ItemMapEntry& slotEntry = *slotEntryPtr;
                     auto ret = ImGui::ImageButton(
                         slotEntry.name.c_str(),
-                        Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(slotEntry.name),
+                        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+                    ->GetTextureByName(slotEntry.name),
                         ImVec2(48.0f, 48.0f), ImVec2(0, 0), ImVec2(1, 1));
                     if (ret) {
                         selectedIndex = index;
@@ -741,7 +742,8 @@ void DrawInventoryTab() {
                     if (it != customItemMapping.end()) {
                         const ItemMapEntry& slotEntry = it->second;
                         auto tex =
-                            Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(slotEntry.name);
+                            std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+                    ->GetTextureByName(slotEntry.name);
                         if (tex) {
                             clicked = ImGui::ImageButton(slotEntry.name.c_str(), tex, ImVec2(IMAGE_SIZE, IMAGE_SIZE),
                                                          ImVec2(0, 0), ImVec2(1, 1));
@@ -806,7 +808,8 @@ void DrawInventoryTab() {
                         if (it != customItemMapping.end()) {
                             const ItemMapEntry& entry = it->second;
                             auto tex =
-                                Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(entry.name);
+                                std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+                    ->GetTextureByName(entry.name);
                             if (tex) {
                                 ret = ImGui::ImageButton(entry.name.c_str(), tex, ImVec2(IMAGE_SIZE, IMAGE_SIZE),
                                                          ImVec2(0, 0), ImVec2(1, 1));
@@ -840,7 +843,8 @@ void DrawInventoryTab() {
                         if (it != customItemMapping.end()) {
                             const ItemMapEntry& entry = it->second;
                             auto tex =
-                                Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(entry.name);
+                                std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+                    ->GetTextureByName(entry.name);
                             if (tex) {
                                 ret = ImGui::ImageButton(entry.name.c_str(), tex, ImVec2(IMAGE_SIZE, IMAGE_SIZE),
                                                          ImVec2(0, 0), ImVec2(1, 1));
@@ -920,7 +924,7 @@ void DrawInventoryTab() {
         static bool sMmIconsRegistered = false;
         if (!sMmIconsRegistered) {
             sMmIconsRegistered = true;
-            auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
+            auto gui = std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui());
             for (int i = 0; i < 24; i++) {
                 gui->LoadGuiTexture(sMmMaskNames[i], sMmMaskIconOtrPaths[i], ImVec4(1, 1, 1, 1));
             }
@@ -971,7 +975,7 @@ void DrawInventoryTab() {
                 bool hasItem = (item != ITEM_NONE);
 
                 // Try to get the registered icon texture
-                auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
+                auto gui = std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui());
                 auto tex = gui->GetTextureByName(maskName);
 
                 if (tex) {
@@ -1817,7 +1821,7 @@ void DrawEquipmentTab() {
             ImGui::Spacing();
 
             // Draw equipment grid: 4 rows x 3 columns (like vanilla equipment)
-            auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
+            auto gui = std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui());
             for (int row = 0; row < 4; row++) {
                 for (int col = 0; col < 3; col++) {
                     if (col != 0) {

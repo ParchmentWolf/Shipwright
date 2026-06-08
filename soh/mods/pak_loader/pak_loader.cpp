@@ -7,7 +7,10 @@
  */
 
 #include "pak_loader.h"
+
+#include "fast/Fast3dGui.h"
 #include "mods/transformation_masks/transformation_masks.h"
+#include "ship/Context.h"
 
 extern "C" Gfx* ResourceMgr_LoadGfxByName(const char* path);
 extern "C" int ResourceMgr_OTRSigCheck(char* imgData);
@@ -3311,7 +3314,7 @@ extern "C" void PakLoader_Init(void) {
         return;
 
     // Don't try to init until Context is ready
-    if (!Ship::Context::GetInstance())
+    if (!Ship::Context::GetRawInstance())
         return;
 
     sInitialized = 1;
@@ -3431,7 +3434,7 @@ extern "C" void PakLoader_Init(void) {
         dirty = true;
     }
     if (dirty) {
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
     }
 
     // Apply persisted CVar selections immediately so the player doesn't have to

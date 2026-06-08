@@ -51,7 +51,7 @@ static bool IsOotVersion(uint32_t version) {
 // Returns the version of the index-th OOT archive, skipping non-OOT (mm.o2r, mods).
 extern "C" uint32_t ResourceMgr_GetGameVersion(int index) {
     auto versions =
-        Ship::Context::GetInstance()->GetResourceManager()->GetArchiveManager()->GetGameVersions();
+        Ship::Context::GetRawInstance()->GetResourceManager()->GetArchiveManager()->GetGameVersions();
     int ootIndex = 0;
     for (uint32_t version : versions) {
         if (IsOotVersion(version)) {

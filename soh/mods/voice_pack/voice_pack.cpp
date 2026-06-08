@@ -38,7 +38,11 @@
 
 #include "voice_pack.h"
 #include "z64.h"
+#include "fast/Fast3dGui.h"
+#include "libultraship/bridge/consolevariablebridge.h"
+#include "ship/Context.h"
 #include "soh/OTRGlobals.h"
+#include "transformation_masks/mm_compat.h"
 
 // ============================================================================
 // Logging
@@ -646,7 +650,7 @@ extern "C" void VoicePack_Select(s32 index) {
 extern "C" void VoicePack_Init(void) {
     if (sInitialized)
         return;
-    if (!Ship::Context::GetInstance())
+    if (!Ship::Context::GetRawInstance())
         return;
 
     sInitialized = 1;
@@ -686,7 +690,7 @@ extern "C" void VoicePack_Init(void) {
     s32 saved = CVarGetInteger("gMods.VoicePack.Selection", -1);
     if (saved >= (s32)sPacks.size()) {
         CVarSetInteger("gMods.VoicePack.Selection", -1);
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
     }
     // Lazy-select if enabled at startup
     if (CVarGetInteger("gMods.VoicePack.Enabled", 0)) {

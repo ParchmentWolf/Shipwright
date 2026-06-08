@@ -8,6 +8,8 @@
 #include "UIWidgets.hpp"
 #include <spdlog/fmt/fmt.h>
 
+#include "fast/Fast3dGui.h"
+
 extern "C" {
 #include "include/z64audio.h"
 #include "variables.h"
@@ -561,7 +563,7 @@ void SohMenu::AddMenuSettings() {
             // Mirror to the runtime CVar that gates page-2 visibility, L-toggle, and ownership grants.
             CVarSetInteger("gCheats.ExtEquip.Enabled",
                            CVarGetInteger(CVAR_RANDOMIZER_SETTING("ExtEquipment"), 0));
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
         })
         .Options(CheckboxOptions().Tooltip(
             "Adds 12 new equipment pieces (3 swords, 3 shields, 3 tunics, 3 boots).\n"
@@ -719,7 +721,7 @@ void SohMenu::AddMenuSettings() {
         .PostFunc([](WidgetInfo& info) {
             if (CVarGetInteger("gMods.MmMasks.InventoryEnabled", 0)) {
                 CVarSetInteger("gMods.TransformMasks.Enabled", 1);
-                Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+                std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
             }
         })
         .Options(CheckboxOptions().Tooltip(
@@ -1009,7 +1011,7 @@ void SohMenu::AddMenuSettings() {
                 CVarSetInteger(CVAR_RANDOMIZER_SETTING("MmMasksAll"), 1);
                 CVarSetInteger(CVAR_RANDOMIZER_SETTING("MmMasksTransform"), 0);
             }
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
         })
         .Options(ButtonOptions().Tooltip(
             "One-click enables all NEI seed-locked rando settings:\n"
@@ -1031,7 +1033,7 @@ void SohMenu::AddMenuSettings() {
             // Mirror disable to runtime CVars (page-2 inventory + ext-equip system off).
             CVarSetInteger("gMods.CustomItems.Enabled", 0);
             CVarSetInteger("gCheats.ExtEquip.Enabled", 0);
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
         })
         .Options(ButtonOptions().Tooltip("Turns off all 5 NEI seed-locked rando settings."));
 
@@ -1041,7 +1043,7 @@ void SohMenu::AddMenuSettings() {
             // Mirror to the runtime CVar that gates page-2 visibility in the pause menu.
             CVarSetInteger("gMods.CustomItems.Enabled",
                            CVarGetInteger(CVAR_RANDOMIZER_SETTING("SkijerCustomItems"), 0));
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
         })
         .Options(CheckboxOptions().Tooltip("Enables the 24 custom items on the second inventory page (seed-locked rando setting).\n"
                                            "When enabled, these items are also added to the randomizer pool and gated logic paths.\n"
@@ -1065,7 +1067,7 @@ void SohMenu::AddMenuSettings() {
         .PostFunc([](WidgetInfo& info) {
             if (CVarGetInteger(CVAR_RANDOMIZER_SETTING("MmMasksAll"), 0)) {
                 CVarSetInteger(CVAR_RANDOMIZER_SETTING("MmMasksTransform"), 0);
-                Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+                std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
             }
         })
         .Options(CheckboxOptions().Tooltip("Adds all 24 MM masks to the randomizer item pool.\n"
@@ -1104,7 +1106,7 @@ void SohMenu::AddMenuSettings() {
         .PostFunc([](WidgetInfo& info) {
             CVarSetInteger("gCheats.ExtEquip.Enabled",
                            CVarGetInteger(CVAR_RANDOMIZER_SETTING("ExtEquipment"), 0));
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
         })
         .Options(CheckboxOptions().Tooltip(
             "Adds the 12 extended equipment pieces (3 swords, 3 shields, 3 tunics, 3 boots) to the randomizer pool.\n"
@@ -1148,7 +1150,7 @@ void SohMenu::AddMenuSettings() {
                 CVarSetInteger(cvarName, -1);
                 PakLoader_SetSlotMix(i, -1);
             }
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
         })
         .Options(ButtonOptions().Size(Sizes::Inline)
                                 .Tooltip("Clear every per-slot override at once."));

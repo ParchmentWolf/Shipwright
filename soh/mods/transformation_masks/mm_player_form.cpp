@@ -1366,7 +1366,7 @@ static void MmForm_PinFormResources(MmPlayerTransformation form) {
         return;
     }
 
-    auto resMgr = Ship::Context::GetInstance()->GetResourceManager();
+    auto resMgr = Ship::Context::GetRawInstance()->GetResourceManager();
     auto archiveManager = resMgr->GetArchiveManager();
     if (!archiveManager) {
         MMFORM_LOG("[MmForm] WARNING: No archive manager available for form %d", form);
@@ -1494,7 +1494,7 @@ static Gfx* MmForm_LoadAndValidateDL(const char* otrPath, std::vector<Gfx>& safe
         path += 7;
     }
 
-    auto resMgr = Ship::Context::GetInstance()->GetResourceManager();
+    auto resMgr = Ship::Context::GetRawInstance()->GetResourceManager();
     auto res = resMgr->LoadResourceProcess(path);
     if (!res) {
         MMFORM_LOG("[MmForm] Failed to load DL resource: %s", path);
@@ -1642,7 +1642,7 @@ static void MmForm_PreResolveDLHashes(Gfx* dl, const char* dlName, int depth) {
     if (dl == NULL || depth > 4)
         return;
 
-    auto resMgr = Ship::Context::GetInstance()->GetResourceManager();
+    auto resMgr = Ship::Context::GetRawInstance()->GetResourceManager();
     auto archMgr = resMgr->GetArchiveManager();
 
     // Walk the DL instructions, properly skipping 2-instruction expanded commands

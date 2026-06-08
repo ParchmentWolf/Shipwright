@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <cstring>
 #include <cstdlib>
+#include <set>
 
 #include "soh/Notification/Notification.h"
 #include "soh/ActorDB.h"

@@ -82,7 +82,6 @@
 #include "soh/Network/Anchor/Anchor.h"
 #include "soh/Network/Harpoon/Harpoon.h"
 #include "soh/Network/Harpoon/HarpoonSkinSync.h"
-#include "Enhancements/mods.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "Enhancements/randomizer/draw.h"
 #include <libultraship/libultraship.h>

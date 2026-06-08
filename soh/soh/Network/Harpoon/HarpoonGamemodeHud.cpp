@@ -6,6 +6,8 @@
 #include <libultraship/libultraship.h>
 #include <spdlog/spdlog.h>
 
+#include "fast/Fast3dGui.h"
+
 namespace HarpoonHud {
 
 void Window::DrawElement() {
@@ -29,7 +31,7 @@ void Window::DrawElement() {
 }
 
 void Register() {
-    auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
+    auto gui = std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui());
     if (gui == nullptr) return;
 
     static const char* kName = "HarpoonGamemodeHud";

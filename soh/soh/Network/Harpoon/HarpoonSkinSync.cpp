@@ -517,7 +517,7 @@ static bool LoadO2rOverride(const std::filesystem::path& o2rPath, O2rOverride& o
     auto allFiles = archive->ListFiles();
     if (!allFiles) return false;
 
-    auto resourceManager = Ship::Context::GetInstance()->GetResourceManager();
+    auto resourceManager = Ship::Context::GetRawInstance()->GetResourceManager();
     if (!resourceManager) return false;
     auto loader = resourceManager->GetResourceLoader();
     if (!loader) return false;
@@ -1239,7 +1239,7 @@ static void CacheVanillaFromArchive(const std::string& archivePath) {
     auto allFiles = archive->ListFiles();
     if (!allFiles) return;
 
-    auto resourceManager = Ship::Context::GetInstance()->GetResourceManager();
+    auto resourceManager = Ship::Context::GetRawInstance()->GetResourceManager();
     if (!resourceManager) return;
     auto loader = resourceManager->GetResourceLoader();
     if (!loader) return;
@@ -1419,7 +1419,7 @@ static bool ExtractVanillaSkeletonFromArchive(Ship::Archive* archive, const std:
                                               std::shared_ptr<Ship::IResource>& outHolder,
                                               void**& outLimbTable, int& outDListCount) {
     if (!archive) return false;
-    auto resourceManager = Ship::Context::GetInstance()->GetResourceManager();
+    auto resourceManager = Ship::Context::GetRawInstance()->GetResourceManager();
     if (!resourceManager) return false;
     auto loader = resourceManager->GetResourceLoader();
     if (!loader) return false;
