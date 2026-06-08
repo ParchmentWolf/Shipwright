@@ -73,7 +73,7 @@ static void HarpoonMainMenu(WidgetInfo& info) {
     ImGui::SameLine();
     if (ImGui::InputText("##HarpoonHost", hostBuf, sizeof(hostBuf))) {
         CVarSetString(CVAR_HARPOON("Host"), hostBuf);
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
     }
 
     s32 port = CVarGetInteger(CVAR_HARPOON("Port"), 8765);  // Harpoon v2 default
@@ -81,7 +81,7 @@ static void HarpoonMainMenu(WidgetInfo& info) {
     ImGui::SameLine();
     if (ImGui::InputInt("##HarpoonPort", &port)) {
         CVarSetInteger(CVAR_HARPOON("Port"), port);
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
     }
 
     ImGui::EndDisabled();
@@ -94,7 +94,7 @@ static void HarpoonMainMenu(WidgetInfo& info) {
             strncpy(hostBuf, OFFICIAL_HOST, sizeof(hostBuf) - 1);
             CVarSetString(CVAR_HARPOON("Host"), OFFICIAL_HOST);
             CVarSetInteger(CVAR_HARPOON("Port"), OFFICIAL_PORT);
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
         }
     }
     if (sUseOfficialRemote) {
@@ -112,7 +112,7 @@ static void HarpoonMainMenu(WidgetInfo& info) {
     ImGui::SameLine();
     if (ImGui::InputText("##HarpoonName", nameBuf, sizeof(nameBuf))) {
         CVarSetString(CVAR_HARPOON("Name"), nameBuf);
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
     }
 
     ImGui::EndDisabled();
@@ -124,7 +124,7 @@ static void HarpoonMainMenu(WidgetInfo& info) {
         color.g = (u8)(colorF[1] * 255);
         color.b = (u8)(colorF[2] * 255);
         CVarSetColor(CVAR_HARPOON("Color.Value"), color);
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())->SaveConsoleVariablesNextFrame();
     }
 
     ImGui::Separator();
